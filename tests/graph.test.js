@@ -10,8 +10,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { BrainManager } from './lib/brain-manager.js';
-import { BrainGraph } from './lib/graph.js';
+import { BrainManager } from '../lib/brain-manager.js';
+import { BrainGraph } from '../lib/graph.js';
 
 async function createGraphTestBrain() {
   const tempDir = await mkdtemp(join(tmpdir(), 'brain-graph-'));

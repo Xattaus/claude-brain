@@ -10,8 +10,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { BrainManager } from './lib/brain-manager.js';
-import { BrainSearch } from './lib/search.js';
+import { BrainManager } from '../lib/brain-manager.js';
+import { BrainSearch } from '../lib/search.js';
 
 async function createTestBrainWithEntries(count) {
   const tempDir = await mkdtemp(join(tmpdir(), 'brain-perf-'));

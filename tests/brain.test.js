@@ -12,9 +12,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { BrainManager } from './lib/brain-manager.js';
-import { BrainSearch } from './lib/search.js';
-import { ConflictChecker } from './lib/conflict-checker.js';
+import { BrainManager } from '../lib/brain-manager.js';
+import { BrainSearch } from '../lib/search.js';
+import { ConflictChecker } from '../lib/conflict-checker.js';
 
 // ── Test helpers ──
 

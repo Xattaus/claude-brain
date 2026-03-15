@@ -10,8 +10,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { validateToolArgs } from './lib/schemas.js';
-import { BrainManager } from './lib/brain-manager.js';
+import { validateToolArgs } from '../lib/schemas.js';
+import { BrainManager } from '../lib/brain-manager.js';
 
 // ── Zod Schema Tests ──
 

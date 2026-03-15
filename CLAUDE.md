@@ -1,81 +1,80 @@
-# Projektin Aivot (Autonominen Kontekstinhallinta)
+# Project Brain (Autonomous Context Management)
 
-Tässä projektissa on käytössä autonominen kontekstinhallintajärjestelmä.
-Aivot sijaitsevat `.brain/`-kansiossa ja niitä käytetään MCP-työkaluilla.
+This project uses an autonomous context management system.
+The brain lives in the `.brain/` directory and is accessed via MCP tools.
 
-## COGNITIVE FIREWALL — Automaattinen suojaus
+## COGNITIVE FIREWALL — Automatic Protection
 
-### ENNEN tiedostomuokkausta (PAKOLLINEN)
-Kutsu `brain_preflight` ENNEN kuin muokkaat mitään tiedostoa:
+### BEFORE editing files (MANDATORY)
+Call `brain_preflight` BEFORE editing any file:
 ```
-brain_preflight({ files: ["polku/tiedosto.js"], intent: "mitä aiot tehdä" })
+brain_preflight({ files: ["path/to/file.js"], intent: "what you plan to do" })
 ```
 
-- RISK >= 70 (HIGH): **PYSÄHDY**, kerro käyttäjälle, pyydä lupa
-- RISK >= 40 (MEDIUM): Lue kaikki säännöt huolellisesti
-- RISK < 40 (LOW/SAFE): Jatka, mutta noudata sääntöjä
+- RISK >= 70 (HIGH): **STOP**, inform the user, ask for permission
+- RISK >= 40 (MEDIUM): Read all rules carefully before proceeding
+- RISK < 40 (LOW/SAFE): Proceed, but follow all rules
 
-**ÄLÄ KOSKAAN** ohita DONT- tai GUARD-sääntöjä.
+**NEVER** skip DONT or GUARD rules.
 
-### MUOKKAUKSEN jälkeen (merkittävät muutokset)
+### AFTER editing (significant changes)
 ```
 brain_validate_change({ files: [...], change_description: "...", changes_summary: "..." })
 ```
-Jos FAIL: **PERU** tai kysy käyttäjältä.
+If FAIL: **REVERT** or ask the user.
 
-## Pakolliset toimintaohjeet
+## Mandatory Instructions
 
-### Istunnon alussa
-1. Kutsu `brain_get_overview` saadaksesi projektin yleiskuvan
-2. Kutsu `brain_get_lessons` tarkistaaksesi opitut asiat — ÄLÄ toista samoja virheitä
-3. ÄLÄ lue .brain/-tiedostoja suoraan — käytä MCP-työkaluja
+### At session start
+1. Call `brain_get_overview` to get the project overview
+2. Call `brain_get_lessons` to review learned lessons — DO NOT repeat past mistakes
+3. DO NOT read .brain/ files directly — use MCP tools
 
-### Kun työskentelet
-1. **Ennen muutoksia**: Kutsu `brain_check_conflicts` tarkistaaksesi ristiriidat
-2. **Tiedostokonteksti**: Kutsu `brain_get_context_for_files` saadaksesi kaikki tiedostoihin liittyvät päätökset, bugit, toteutukset ja mallit
-3. **Tiedon hakuun**: Käytä `brain_search` tai `brain_list` — EI grep .brain/
-4. **Kun tarvitset yksityiskohtia**: `brain_get_entry` yksittäiselle tietoyksikölle
+### While working
+1. **Before changes**: Call `brain_check_conflicts` to check for conflicts
+2. **File context**: Call `brain_get_context_for_files` to get all decisions, bugs, implementations, and patterns related to the files
+3. **Searching**: Use `brain_search` or `brain_list` — NOT grep on .brain/
+4. **Details**: Use `brain_get_entry` for a single entry
 
-### Muutosten jälkeen — tallenna AINA aivoihin
-1. **Arkkitehtuuripäätös** → `brain_record_decision` (MIKSI näin tehtiin)
-2. **Bugikorjaus** → `brain_record_bug` (oireet, juurisyy, korjaus)
-3. **Uusi toteutus/merkittävä muutos** → `brain_record_implementation`
-4. **Uudelleenkäytettävä malli** → `brain_record_pattern`
-5. **Oppi virheestä/korjauksesta** → `brain_record_lesson` (mitä tapahtui, oppi, sääntö)
-6. **Yhteyksien luominen** → `brain_link_entries` merkintöjen välille (implements, fixes, supersedes, jne.)
+### After changes — ALWAYS save to brain
+1. **Architecture decision** → `brain_record_decision` (record WHY)
+2. **Bug fix** → `brain_record_bug` (symptoms, root cause, fix)
+3. **New implementation / significant change** → `brain_record_implementation`
+4. **Reusable pattern** → `brain_record_pattern`
+5. **Lesson from mistake** → `brain_record_lesson` (what happened, lesson, rule)
+6. **Create links** → `brain_link_entries` between entries (implements, fixes, supersedes, etc.)
 
-### Oppien tallentaminen (Self-Improvement Loop)
-Kun käyttäjä korjaa sinua tai huomaat virheen:
-1. **AINA** tallenna oppi `brain_record_lesson` -työkalulla
-2. Kirjaa konkreettinen **sääntö** joka estää saman virheen toistumisen
-3. Aseta severity: `high` = kriittinen virhe, `medium` = normaali, `low` = hyvä käytäntö
-4. Aseta trigger: `correction` = käyttäjä korjasi, `discovery` = itse huomattiin, `bug` = bugin kautta, `review` = katselmuksessa
+### Self-Improvement Loop
+When the user corrects you or you discover a mistake:
+1. **ALWAYS** record a lesson with `brain_record_lesson`
+2. Write a concrete **rule** that prevents the same mistake from recurring
+3. Set severity: `high` = critical error, `medium` = normal, `low` = best practice
+4. Set trigger: `correction` = user corrected, `discovery` = self-discovered, `bug` = via bug, `review` = during review
 
-### Yhteydet (Relationships)
+### Relationships
 
-Merkintöjä voi linkittää toisiinsa tyypitetyin suhtein:
-- `supersedes` / `superseded_by` — uusi päätös korvaa vanhan
-- `implements` — toteutus toteuttaa päätöksen
-- `fixes` — bugikorjaus korjaa bugin
-- `caused_by` — aiheutui toisesta merkinnästä
-- `used_in` — käytetään toisessa
-- `relates_to` — yleinen yhteys
+Entries can be linked with typed relationships:
+- `supersedes` / `superseded_by` — new decision replaces old one
+- `implements` — implementation fulfills a decision
+- `fixes` — bug fix resolves a bug
+- `caused_by` — caused by another entry
+- `used_in` — used in another entry
+- `relates_to` — general relationship
 
-Käytä `brain_link_entries` suhteen luomiseen — se luo automaattisesti kaksisuuntaisen linkin.
-Uutta päätöstä tallennettaessa voit käyttää `supersedes`-parametria vanhan päätöksen korvaamiseen.
+Use `brain_link_entries` to create a relationship — it automatically creates a bidirectional link.
 
-### Ristiriitavaroitukset
-Jos `brain_check_conflicts` palauttaa osumia:
-- **PYSÄHDY** ja ilmoita käyttäjälle ennen jatkamista
-- Kerro mikä aiempi päätös on ristiriidassa ja miksi
-- Kysy haluaako käyttäjä ohittaa, päivittää vai perua muutoksen
-- Kriittiset/korkean prioriteetin bugit nostetaan CONFLICT-tasolle (ei vain WARNING)
+### Conflict warnings
+If `brain_check_conflicts` returns matches:
+- **STOP** and inform the user before proceeding
+- Explain which previous decision conflicts and why
+- Ask if the user wants to override, update, or cancel the change
+- Critical/high-priority bugs are escalated to CONFLICT level (not just WARNING)
 
-## .brain/-kansion rakenne
-- `overview.md` — Projektin yleiskuvaus (kompakti)
-- `decisions/` — Arkkitehtuuripäätökset (ADR-formaatti)
-- `implementations/` — Toteutuskuvaukset
-- `bugs/` — Bugikorjaukset ja workaroundit
-- `patterns/` — Uudelleenkäytettävät mallit
-- `lessons/` — Opitut asiat virheistä ja korjauksista
-- `history/changelog.md` — Muutoshistoria
+## .brain/ directory structure
+- `overview.md` — Project overview (compact)
+- `decisions/` — Architecture Decision Records (ADR format)
+- `implementations/` — Implementation descriptions
+- `bugs/` — Bug fixes and workarounds
+- `patterns/` — Reusable patterns
+- `lessons/` — Lessons learned from mistakes and corrections
+- `history/changelog.md` — Change history

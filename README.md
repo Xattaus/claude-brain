@@ -305,22 +305,49 @@ Opens a browser with a force-directed 3D graph — nodes colored by type, links 
 
 <br>
 
-## Key Files
+## Testing
 
-| File | Purpose |
-|:-----|:--------|
-| `mcp-server.js` | MCP server — all 34 tools |
-| `install.js` | One-command installer for any project |
-| `cli.js` | Command-line interface |
-| `visualize.js` | 3D knowledge graph visualizer |
-| `lib/brain-manager.js` | Core CRUD with `proper-lockfile` |
-| `lib/search.js` | MiniSearch-powered full-text search |
-| `lib/graph.js` | Knowledge graph traversal |
-| `lib/conflict-checker.js` | Decision conflict detection |
-| `lib/change-validator.js` | Post-edit rule validation |
-| `lib/rule-index.js` | Cognitive firewall rule engine |
-| `lib/analyzer.js` | Project structure analysis |
-| `lib/schemas.js` | Zod input validation |
+```bash
+npm test                    # run all tests
+npm run test:brain          # core brain operations
+npm run test:graph          # knowledge graph traversal
+npm run test:validation     # input validation (Zod)
+npm run test:perf           # performance benchmarks
+```
+
+Uses Node.js built-in test runner (`node:test`) — no additional test dependencies needed.
+
+<br>
+
+## Project Structure
+
+```
+claude-brain/
+├── mcp-server.js           MCP server — all 34 tools
+├── install.js              One-command installer for any project
+├── cli.js                  Command-line interface
+├── visualize.js            3D knowledge graph visualizer
+├── lib/
+│   ├── brain-manager.js    Core CRUD with file locking
+│   ├── search.js           MiniSearch-powered full-text search
+│   ├── graph.js            Knowledge graph traversal
+│   ├── conflict-checker.js Decision conflict detection
+│   ├── change-validator.js Post-edit rule validation
+│   ├── rule-index.js       Cognitive firewall rule engine
+│   ├── analyzer.js         Project structure analysis
+│   ├── schemas.js          Zod input validation
+│   └── ...
+├── templates/
+│   ├── CLAUDE.md.template  Instructions injected into target projects
+│   ├── hooks/              Session hooks (start, stop, firewall, etc.)
+│   ├── agents/             Bundled agent definitions
+│   └── skills/             Brain workflow skills
+└── tests/
+    ├── brain.test.js       Core operations
+    ├── graph.test.js       Graph traversal
+    ├── validation.test.js  Schema validation
+    └── performance.test.js Benchmarks
+```
 
 <br>
 
