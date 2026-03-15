@@ -17,7 +17,7 @@
 
 **Persistent memory for AI coding agents**
 
-Your agent forgets everything between sessions. This fixes that.
+Your agent forgets everything between sessions — and loses context within them. This fixes both.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
@@ -33,7 +33,9 @@ Your agent forgets everything between sessions. This fixes that.
 
 ## The Problem
 
-AI coding agents are stateless. Every session starts from zero.
+AI coding agents have two fundamental limitations:
+
+**1. No memory between sessions.** Every session starts from zero.
 
 ```
 Session 1:  "Let's use JWT for auth"     ─── decision made
@@ -43,14 +45,28 @@ Session 3:  "Why is auth broken?"        ─── bug reintroduced
 
 Architecture decisions get contradicted. Fixed bugs come back. The agent makes the same mistakes over and over because it has no memory.
 
+**2. Context window fills up within a session.** As conversations grow longer, the agent loses track of earlier decisions and context gets compressed or evicted. The bigger the project, the faster critical information drowns in noise.
+
+```
+Turn 1:   Agent reads 5 files, understands architecture      ─── context: 30%
+Turn 10:  Agent has made 8 edits, context is cluttered        ─── context: 75%
+Turn 20:  Early decisions forgotten, auto-compact kicks in    ─── context: 100% → compressed
+Turn 25:  "Wait, why did we choose that approach?"            ─── knowledge lost
+```
+
 ## The Solution
 
-Claude Brain is an MCP server that gives your agent a **structured knowledge base** it reads on startup and writes to as it works.
+Claude Brain is an MCP server that gives your agent a **structured knowledge base** it reads on startup and writes to as it works — solving both problems at once.
+
+**Cross-session**: decisions, bugs, lessons, and patterns persist forever. The agent picks up exactly where it left off.
+
+**Within-session**: instead of stuffing everything into the context window, the agent queries the brain on demand — retrieving only what's relevant for the current task.
 
 ```
 Session 1:  "Let's use JWT for auth"     ─── brain_record_decision ✓
 Session 2:  "Let's use session cookies"  ─── brain_check_conflicts ⚠ CONFLICT with DEC-001
 Session 3:  "Fix the auth bug"           ─── brain_get_context_for_files → knows full history
+Turn 30:    Context compacted? No problem ─── brain_search retrieves what's needed
 ```
 
 <br>
