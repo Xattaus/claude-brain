@@ -1,0 +1,28 @@
+{
+  "name": "claude-brain",
+  "version": "3.0.0",
+  "description": "Autonominen kontekstinhallinta Claude Codelle — \"Aivot\"",
+  "type": "module",
+  "main": "mcp-server.js",
+  "bin": {
+    "brain": "cli.js",
+    "claude-brain-install": "install.js"
+  },
+  "scripts": {
+    "start": "node mcp-server.js",
+    "install-brain": "node install.js",
+    "brain": "node cli.js"
+  },
+  "keywords": [
+    "claude-code",
+    "mcp",
+    "context-management",
+    "brain"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "minisearch": "^7.2.0",
+    "proper-lockfile": "^4.1.2",
+    "zod": "^4.3.6"
+  }
+}

@@ -1,0 +1,112 @@
+# Projektin Aivot (Autonominen Kontekstinhallinta)
+
+Tässä projektissa on käytössä autonominen kontekstinhallintajärjestelmä.
+Aivot sijaitsevat `.brain/`-kansiossa ja niitä käytetään MCP-työkaluilla.
+
+## Pakolliset toimintaohjeet
+
+### Istunnon alussa
+1. Kutsu `brain_get_overview` saadaksesi projektin yleiskuvan + terveysvaroitukset
+2. Kutsu `brain_get_backlog` nähdäksesi keskeneräiset suunnitelmat ja lykätyt tehtävät
+3. Arvioi onko jokin lykätty tehtävä nyt ajankohtainen
+4. ÄLÄ lue .brain/-tiedostoja suoraan — käytä MCP-työkaluja
+
+### Kun työskentelet
+1. **Ennen muutoksia**: Kutsu `brain_check_conflicts` tarkistaaksesi ristiriidat
+2. **Tiedostokonteksti**: Kutsu `brain_get_context_for_files` saadaksesi kaikki tiedostoihin liittyvät päätökset, bugit, toteutukset ja mallit
+3. **Tiedon hakuun**: Käytä `brain_search` tai `brain_list` — EI grep .brain/
+4. **Kun tarvitset yksityiskohtia**: `brain_get_entry` yksittäiselle tietoyksikölle
+
+### Muutosten jälkeen — tallenna AINA aivoihin
+1. **Arkkitehtuuripäätös** → `brain_record_decision` (MIKSI näin tehtiin)
+2. **Bugikorjaus** → `brain_record_bug` (oireet, juurisyy, korjaus)
+3. **Uusi toteutus/merkittävä muutos** → `brain_record_implementation`
+4. **Uudelleenkäytettävä malli** → `brain_record_pattern`
+5. **Suunnitelma** → `brain_record_plan` (mitä suunniteltiin, toteutettiin, lykättiin)
+6. **Yhteyksien luominen** → `brain_link_entries` merkintöjen välille (implements, fixes, supersedes, jne.)
+
+### Session lopussa — tallenna suunnitelmat!
+Jos työ jäi kesken tai tehtäviä lykättiin:
+1. Kutsu `brain_record_plan` tallentaaksesi suunnitelman, toteutetut osat ja lykätyt tehtävät
+2. Merkitse selkeästi MIKSI kukin asia lykättiin
+3. Kirjaa seuraavat askeleet
+4. Käytä `brain_update_plan` päivittääksesi olemassa olevaa suunnitelmaa
+
+### Terveyden seuranta
+- `brain_health` — terveysraportti (vanhentuneet, orvot, rikkinäiset linkit)
+- `brain_review_entry` — merkitse tarkistetuksi ilman sisällön muuttamista
+
+### Yhteydet (Relationships)
+
+Merkintöjä voi linkittää toisiinsa tyypitetyin suhtein:
+- `supersedes` / `superseded_by` — uusi päätös korvaa vanhan
+- `implements` — toteutus toteuttaa päätöksen
+- `fixes` — bugikorjaus korjaa bugin
+- `caused_by` — aiheutui toisesta merkinnästä
+- `used_in` — käytetään toisessa
+- `relates_to` — yleinen yhteys
+
+Käytä `brain_link_entries` suhteen luomiseen — se luo automaattisesti kaksisuuntaisen linkin.
+Uutta päätöstä tallennettaessa voit käyttää `supersedes`-parametria vanhan päätöksen korvaamiseen.
+
+### Ristiriitavaroitukset
+Jos `brain_check_conflicts` palauttaa osumia:
+- **PYSÄHDY** ja ilmoita käyttäjälle ennen jatkamista
+- Kerro mikä aiempi päätös on ristiriidassa ja miksi
+- Kysy haluaako käyttäjä ohittaa, päivittää vai perua muutoksen
+- Kriittiset/korkean prioriteetin bugit nostetaan CONFLICT-tasolle (ei vain WARNING)
+
+## .brain/-kansion rakenne
+- `overview.md` — Projektin yleiskuvaus (kompakti)
+- `decisions/` — Arkkitehtuuripäätökset (ADR-formaatti)
+- `implementations/` — Toteutuskuvaukset
+- `bugs/` — Bugikorjaukset ja workaroundit
+- `patterns/` — Uudelleenkäytettävät mallit
+- `plans/` — Suunnitelmat ja lykätyt tehtävät
+- `history/changelog.md` — Muutoshistoria
+
+## Bundled agentit — käytä proaktiivisesti!
+
+Projektiin on asennettu erikoisagentit aivojen hallintaan. Käytä niitä **automaattisesti** ilman käyttäjän erillistä pyyntöä kun tilanne edellyttää:
+
+### brain-curator — Aivojen terveydenhoitaja
+- **Milloin**: Aja istunnon alussa jos `brain_health` raportoi ongelmia (stale, orvot, rikkinäiset linkit)
+- **Triggerit**: health-varoitukset overviewssä, >5 vanhentunutta merkintää, rikkinäiset linkit
+
+### brain-documenter — Dokumentoimattomien muutosten tunnistaja
+- **Milloin**: Aja automaattisesti kun käyttäjä pyytää koodimuutoksia ja git-historiassa näkyy aikaisempia dokumentoimattomia muutoksia
+- **Triggerit**: Uuden session alussa jos edellisessä sessiossa tehtiin muutoksia, käyttäjä pyytää "päivitä dokumentaatio"
+- Käyttää `brain_mine_sessions`-työkalua keskustelukontekstin louhintaan
+
+### brain-reviewer — Konsistenssin validoija
+- **Milloin**: Aja kun brain-merkinnät alkavat tuntua vanhoilta tai käyttäjä raportoi "aivot eivät vastaa koodia"
+- **Triggerit**: Iso refaktorointi tehty, monta vanhentunutta merkintää, käyttäjä kyseenalaistaa aivojen luotettavuutta
+
+### brain-backlog — Backlogin hallitsija
+- **Milloin**: Aja istunnon alussa jos `brain_get_backlog` palauttaa avoimia suunnitelmia
+- **Triggerit**: >3 keskeneräistä suunnitelmaa, lykätty tehtävä joka on nyt relevantti, käyttäjä kysyy "mitä pitäisi tehdä seuraavaksi"
+
+### architect — Järjestelmäarkkitehti
+- **Milloin**: Käytä kun käyttäjä pyytää uutta ominaisuutta, isoa refaktorointia tai arkkitehtuurimuutosta
+- **Triggerit**: "suunnittele", "miten toteuttaisin", uusi moduuli/komponentti, iso rakenteellinen muutos
+- READ-ONLY — suunnittelee mutta ei implementoi. Tuottaa arkkitehtuurikaaviot, API-suunnittelun, tietomallin ja toteutussuunnitelman
+
+### code-reviewer — Koodikatselmoija
+- **Milloin**: Käytä automaattisesti merkittävien koodimuutosten jälkeen tai kun käyttäjä pyytää katselmointia
+- **Triggerit**: Iso PR/muutos valmis, käyttäjä pyytää "tarkista koodi", uusi feature toteutettu, ennen committia kriittisessä koodissa
+- Tarkistaa bugit, tietoturva-aukot, suorituskykyongelmat ja koodin laadun
+
+### test-writer — Testien kirjoittaja
+- **Milloin**: Käytä kun uusi koodi tarvitsee testejä tai käyttäjä pyytää testien kirjoittamista
+- **Triggerit**: Uusi feature toteutettu ilman testejä, käyttäjä pyytää "kirjoita testit", bugikorjaus joka tarvitsee regressiotestin
+- Tunnistaa automaattisesti projektin testausframeworkin ja noudattaa olemassa olevia testikäytäntöjä
+
+### security-scanner — Tietoturva-auditoija
+- **Milloin**: Käytä kun koodissa käsitellään autentikointia, syötteitä, salaisuuksia tai ulkoisia integraatioita
+- **Triggerit**: Auth-muutokset, API-endpointit, riippuvuuspäivitykset, käyttäjä pyytää "tarkista tietoturva", uusi ulkoinen integraatio
+- Skannaa OWASP Top 10 -haavoittuvuudet, kovakoodatut salaisuudet, riippuvuuksien tunnetut haavoittuvuudet
+
+### Yleissäännöt
+- **ÄLÄ** kysy lupaa agenttien ajamiseen — ne ovat osa normaalia työnkulkua
+- Raportoi tulokset käyttäjälle tiiviisti, älä näytä agentin raaka-outputtia
+- Jos agentti löytää ongelmia, ehdota korjauksia ja toteuta ne jos ne ovat selkeitä

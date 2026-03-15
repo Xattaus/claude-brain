@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Brain data (generated per project via install.js)
+.brain/
+
+# Claude local settings (machine-specific paths)
+.claude/
+
+# Playwright MCP logs
+.playwright-mcp/
+
+# Generated test data
+race_test_env_fixed/
+bench_test_env/
+race_test_env/
+
+# Separate document (not part of this project)
+tehokas_opas.md
+
+# Windows artifacts
+nul
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Stray image files
+*.jpeg
+*.jpg
+*.png
+*.gif

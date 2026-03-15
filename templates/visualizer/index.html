@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brain Neural Map</title>
+  <style>
+    :root {
+      --bg-deep: #0a0e1a;
+      --glass-bg: rgba(8, 14, 28, 0.92);
+      --glass-border: rgba(60, 100, 140, 0.25);
+      --text-primary: #c8d4e8;
+      --text-secondary: #5a7090;
+      --accent: #4a90c0;
+      --color-dec: #00ccdd;
+      --color-bug: #dd3344;
+      --color-impl: #00cc77;
+      --color-pat: #9955ee;
+      --color-plan: #ddaa00;
+      --color-les: #dd55aa;
+      --font: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg-deep);
+      overflow: hidden;
+      font-family: var(--font);
+      color: var(--text-primary);
+    }
+    canvas { display: block; }
+    .glass {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    /* ── View Toggle ── */
+    #view-toggle {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 110; display: flex; padding: 2px; gap: 0;
+    }
+    .view-btn {
+      background: none; border: none; color: var(--text-secondary);
+      font-family: var(--font); font-size: 11px; padding: 5px 16px;
+      cursor: pointer; border-radius: 4px; transition: all 0.15s;
+    }
+    .view-btn.active { background: rgba(60,100,140,0.3); color: var(--text-primary); }
+    .view-btn:hover { color: var(--text-primary); }
+
+    /* ── 2D Canvas ── */
+    #canvas-2d {
+      position: fixed; top: 0; left: 0;
+      display: none; z-index: 1; cursor: grab;
+    }
+
+    /* ── HUD Stats ── */
+    #hud-stats {
+      position: fixed; top: 16px; left: 16px; z-index: 100;
+      min-width: 220px; pointer-events: none;
+    }
+    #hud-stats .title {
+      font-size: 10px; letter-spacing: 2px; color: var(--accent);
+      text-transform: uppercase; margin-bottom: 8px;
+      padding-bottom: 6px; border-bottom: 1px solid var(--glass-border);
+    }
+    #hud-stats .row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px; }
+    #hud-stats .big { font-size: 18px; }
+    #hud-stats .sub { font-size: 11px; color: var(--text-secondary); }
+    #hud-stats .types { font-size: 10px; margin-top: 6px; line-height: 1.9; }
+    #hud-stats .bar-track {
+      width: 100%; height: 3px; background: rgba(255,255,255,0.05);
+      border-radius: 2px; margin-top: 6px; overflow: hidden;
+    }
+    #hud-stats .bar-fill { height: 100%; border-radius: 2px; }
+    #hud-stats .health { font-size: 10px; margin-top: 3px; }
+
+    /* ── Search ── */
+    #search-box { position: fixed; top: 16px; left: 260px; z-index: 100; }
+    #search-input {
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: 6px; padding: 7px 12px; width: 220px;
+      font-family: var(--font); font-size: 11px;
+      color: var(--text-primary); outline: none;
+    }
+    #search-input::placeholder { color: var(--text-secondary); }
+    #search-input:focus { border-color: var(--accent); }
+    #search-results { margin-top: 4px; max-height: 240px; overflow-y: auto; display: none; }
+    #search-results.visible { display: block; }
+    .search-item {
+      padding: 6px 10px; font-size: 11px; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s;
+    }
+    .search-item:hover { background: rgba(255,255,255,0.05); }
+    .search-item .si-id { font-size: 10px; margin-right: 6px; }
+
+    /* ── Type Filters ── */
+    #type-filters {
+      position: fixed; top: 16px; right: 16px; z-index: 99;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .filter-btn {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; padding: 5px 12px; font-size: 11px;
+      font-family: var(--font); transition: all 0.15s; user-select: none;
+    }
+    .filter-btn:hover { border-color: rgba(255,255,255,0.25) !important; }
+    .filter-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    /* ── Region Legend ── */
+    #region-legend {
+      position: fixed; bottom: 80px; right: 16px; z-index: 90;
+      font-size: 9px; max-width: 160px;
+    }
+    #region-legend .rl-title {
+      font-size: 9px; letter-spacing: 1.5px; color: var(--text-secondary);
+      text-transform: uppercase; margin-bottom: 6px;
+    }
+    .rl-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; color: var(--text-secondary); }
+    .rl-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .rl-region { font-size: 9px; }
+
+    /* ── Detail Panel ── */
+    #detail-panel {
+      position: fixed; top: 16px; right: -400px; width: 370px;
+      max-height: calc(100vh - 32px); overflow-y: auto;
+      transition: right 0.3s cubic-bezier(0.4,0,0.2,1); z-index: 100;
+    }
+    #detail-panel.visible { right: 16px; }
+    #detail-panel .header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--glass-border);
+    }
+    .close-btn {
+      background: none; border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-secondary); cursor: pointer; font-size: 13px;
+      font-family: var(--font); padding: 1px 7px; border-radius: 3px;
+    }
+    .close-btn:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.2); }
+    #detail-panel .entry-title { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
+    #detail-panel .meta { color: var(--text-secondary); font-size: 10px; margin-bottom: 6px; }
+    #detail-panel .tag {
+      display: inline-block; background: rgba(60,100,140,0.12);
+      border: 1px solid rgba(60,100,140,0.2);
+      padding: 1px 7px; border-radius: 3px; font-size: 9px; margin: 0 3px 3px 0;
+    }
+    #detail-panel .section-label {
+      color: var(--accent); font-size: 9px; letter-spacing: 1.5px;
+      text-transform: uppercase; margin: 10px 0 4px;
+    }
+    .file-item { color: var(--text-secondary); font-size: 10px; padding: 1px 0; }
+    .conn-item { margin-top: 4px; font-size: 11px; }
+    .conn-rel { font-size: 9px; letter-spacing: 0.3px; }
+    .conn-name { color: var(--text-secondary); font-size: 10px; }
+    #detail-panel::-webkit-scrollbar { width: 3px; }
+    #detail-panel::-webkit-scrollbar-track { background: transparent; }
+    #detail-panel::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+    /* ── Tooltip ── */
+    #node-tooltip {
+      position: fixed; pointer-events: none; z-index: 200;
+      font-size: 11px; max-width: 280px; transition: opacity 0.1s; opacity: 0;
+    }
+
+    /* ── Timeline ── */
+    #timeline {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+      z-index: 90; width: min(550px, 75vw); padding: 8px 14px;
+    }
+    .timeline-label {
+      font-size: 8px; letter-spacing: 1.5px; color: var(--text-secondary);
+      text-transform: uppercase; margin-bottom: 4px;
+    }
+    .timeline-track {
+      position: relative; width: 100%; height: 16px;
+      border-bottom: 1px solid rgba(60,100,140,0.2);
+    }
+    .tl-dot {
+      position: absolute; width: 5px; height: 5px; border-radius: 50%;
+      top: 50%; transform: translate(-50%, -50%);
+      cursor: pointer; transition: transform 0.15s;
+    }
+    .tl-dot:hover { transform: translate(-50%, -50%) scale(2.5); z-index: 1; }
+    .timeline-range {
+      display: flex; justify-content: space-between;
+      font-size: 9px; color: var(--text-secondary); margin-top: 3px;
+    }
+
+    /* ── Controls hint ── */
+    #controls-hint {
+      position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
+      z-index: 90; font-size: 9px; color: var(--text-secondary);
+      pointer-events: none; opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+  <div id="view-toggle" class="glass">
+    <button class="view-btn active" data-view="3d">3D Brain</button>
+    <button class="view-btn" data-view="2d">2D Graph</button>
+  </div>
+  <canvas id="canvas-2d"></canvas>
+  <div id="hud-stats" class="glass"></div>
+  <div id="search-box">
+    <input id="search-input" type="text" placeholder="Search neurons..." autocomplete="off">
+    <div id="search-results" class="glass"></div>
+  </div>
+  <div id="type-filters"></div>
+  <div id="region-legend" class="glass"></div>
+  <div id="detail-panel" class="glass"></div>
+  <div id="node-tooltip" class="glass"></div>
+  <div id="timeline" class="glass">
+    <div class="timeline-label">Timeline</div>
+    <div class="timeline-track"></div>
+    <div class="timeline-range"><span id="tl-start"></span><span id="tl-end"></span></div>
+  </div>
+  <div id="controls-hint">Drag rotate &bull; Scroll zoom &bull; Click select &bull; Double-click focus &bull; Esc deselect</div>
+
+  <script type="module">
+    import * as THREE from 'https://esm.sh/three@0.160.0';
+    import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+    import { EffectComposer } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+    import { ShaderPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/ShaderPass.js';
+    import { OutputPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/OutputPass.js';
+    import { createNoise3D } from 'https://esm.sh/simplex-noise@4.0.3';
+
+    // ═══════════════════════════════════════
+    //  CONSTANTS
+    // ═══════════════════════════════════════
+
+    const TYPE_COLORS = {
+      decision: 0x00ccdd, bug: 0xdd3344, implementation: 0x00cc77,
+      pattern: 0x9955ee, plan: 0xddaa00, lesson: 0xdd55aa
+    };
+    const TYPE_LABELS = {
+      decision: 'DEC', bug: 'BUG', implementation: 'IMPL',
+      pattern: 'PAT', plan: 'PLAN', lesson: 'LES'
+    };
+    const REL_COLORS = {
+      supersedes: 0xcc5500, superseded_by: 0xcc5500,
+      implements: 0x00cc77, fixes: 0xcccc00,
+      caused_by: 0xcc7700, used_in: 0x3377cc, relates_to: 0x667799
+    };
+    const REL_SPEED = {
+      supersedes: 0.3, superseded_by: 0.3, implements: 0.25,
+      fixes: 0.28, caused_by: 0.2, used_in: 0.15, relates_to: 0.12
+    };
+    const STATUS_OPACITY = {
+      active: 1, current: 1, open: 1,
+      fixed: 0.7, 'wont-fix': 0.5, workaround: 0.6,
+      superseded: 0.35, abandoned: 0.3,
+      planned: 0.85, in_progress: 0.9, partial: 0.8, completed: 0.6
+    };
+    const BRAIN_REGIONS = {
+      decision:       { center: [0, 1.2, 3.5],  spread: 1.6, label: 'Frontal' },
+      plan:           { center: [0, 0.3, 4.8],  spread: 1.1, label: 'Prefrontal' },
+      implementation: { center: [0, 3.2, 0],    spread: 1.5, label: 'Motor Cortex' },
+      pattern:        { center: [3.8, -0.3, 0], spread: 1.2, label: 'Temporal' },
+      bug:            { center: [0, -1.8, -1],  spread: 1.0, label: 'Amygdala' },
+      lesson:         { center: [0, -0.8, 1.5], spread: 1.1, label: 'Hippocampus' }
+    };
+    const BRAIN_RADIUS = 5;
+
+    // 2D initial cluster positions (angle per type)
+    const TYPE_ANGLES_2D = { decision: -1.2, plan: -1.8, implementation: -0.4, pattern: 0.8, bug: 2.2, lesson: 1.5 };
+
+    // ═══════════════════════════════════════
+    //  SHARED STATE
+    // ═══════════════════════════════════════
+
+    let currentView = '3d';
+    let graphData = null;
+    let selectedNode = null;
+    let highlightSet = new Set();
+    let activeTypes = new Set(Object.keys(TYPE_COLORS));
+
+    // 3D state
+    let scene, camera, renderer, composer, controls;
+    let neuronObjects = [], axonObjects = [], impulseObjects = [], brainUniforms = [];
+    let hoverNeuron3d = null;
+    const clock = new THREE.Clock();
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    // 2D state
+    let canvas2d, ctx2d, dpr;
+    let nodes2d = [], links2d = [];
+    let simAlpha = 1;
+    let pan2d = { x: 0, y: 0 }, zoom2d = 1;
+    let drag2d = null, isPanning2d = false, panStart2d = { x: 0, y: 0 };
+    let dragMoved = false;
+    let hover2d = null;
+
+    async function fetchGraphData() {
+      const res = await fetch('/api/graph');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }
+    function colorHex(c) { return '#' + c.toString(16).padStart(6, '0'); }
+    function gaussRandom(m, s) {
+      const u = 1 - Math.random(), v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * s + m;
+    }
+    function linkId(l) {
+      return typeof l.source === 'object' ? l.source.id : l.source;
+    }
+    function linkTid(l) {
+      return typeof l.target === 'object' ? l.target.id : l.target;
+    }
+
+    // ═══════════════════════════════════════
+    //  3D: BRAIN MESH
+    // ═══════════════════════════════════════
+
+    const noise3D = createNoise3D();
+
+    function createBrainHemisphere(side) {
+      const phiStart = side > 0 ? 0 : Math.PI;
+      const geo = new THREE.SphereGeometry(BRAIN_RADIUS, 64, 48, phiStart, Math.PI);
+      const pos = geo.attributes.position, norm = geo.attributes.normal;
+      for (let i = 0; i < pos.count; i++) {
+        let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        const nx = norm.getX(i), ny = norm.getY(i), nz = norm.getZ(i);
+        y *= 0.78; z *= 1.15;
+        const d = (noise3D(x*0.45,y*0.45,z*0.45)*0.55 + noise3D(x*0.9,y*0.9,z*0.9)*0.25 + noise3D(x*1.8,y*1.8,z*1.8)*0.1) * BRAIN_RADIUS * 0.12;
+        x += nx*d + side*0.2; y += ny*d; z += nz*d;
+        pos.setXYZ(i, x, y, z);
+      }
+      geo.computeVertexNormals();
+      return geo;
+    }
+    function makeBrainShader() {
+      const u = { glowColor: { value: new THREE.Color(0x3377aa) }, time: { value: 0 } };
+      brainUniforms.push(u);
+      return new THREE.ShaderMaterial({
+        uniforms: u,
+        vertexShader: `varying vec3 vN,vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}`,
+        fragmentShader: `uniform vec3 glowColor;uniform float time;varying vec3 vN,vV;void main(){float f=pow(1.-abs(dot(normalize(vV),vN)),3.5);float p=1.+sin(time*.5)*.04;gl_FragColor=vec4(glowColor*f*.7*p,f*.2+.005);}`,
+        transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
+      });
+    }
+    function buildBrain() {
+      const g = new THREE.Group();
+      const sh = makeBrainShader();
+      const wi = new THREE.MeshBasicMaterial({ color: 0x225577, wireframe: true, transparent: true, opacity: 0.04, depthWrite: false });
+      for (const s of [-1,1]) { const geo = createBrainHemisphere(s); g.add(new THREE.Mesh(geo, sh)); g.add(new THREE.Mesh(geo.clone(), wi)); }
+      const cg = new THREE.SphereGeometry(1.8,32,24); const cp=cg.attributes.position, cn=cg.attributes.normal;
+      for (let i=0;i<cp.count;i++){let x=cp.getX(i),y=cp.getY(i),z=cp.getZ(i);const n=noise3D(x*1.5,y*1.5,z*1.5)*0.3;cp.setXYZ(i,x+cn.getX(i)*n,y+cn.getY(i)*n,z+cn.getZ(i)*n);}
+      cg.computeVertexNormals();
+      const cm=new THREE.Mesh(cg,makeBrainShader());cm.position.set(0,-2.8,-3.5);cm.scale.set(1.2,0.65,0.85);g.add(cm);
+      const cw=new THREE.Mesh(cg.clone(),wi.clone());cw.position.copy(cm.position);cw.scale.copy(cm.scale);g.add(cw);
+      const sm=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.3,2.5,8),makeBrainShader());sm.position.set(0,-4.2,-2);sm.rotation.x=0.3;g.add(sm);
+      return g;
+    }
+
+    // ═══════════════════════════════════════
+    //  3D: TEXT SPRITES
+    // ═══════════════════════════════════════
+
+    function createTextSprite(text, hexColor, size = 0.8, opacity = 0.85) {
+      const c = document.createElement('canvas'); const x = c.getContext('2d');
+      c.width = 512; c.height = 48; x.clearRect(0,0,512,48);
+      x.font = 'bold 28px Consolas,monospace'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillStyle = hexColor; x.globalAlpha = opacity; x.fillText(text, 256, 26);
+      const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter;
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, sizeAttenuation: true }));
+      s.scale.set(size*512/48*0.15, size*0.15, 1); return s;
+    }
+    function createRegionLabel(text, pos, color) {
+      const s = createTextSprite(text.toUpperCase(), color, 1.8, 0.25);
+      s.position.copy(pos); return s;
+    }
+
+    // ═══════════════════════════════════════
+    //  3D: NEURONS
+    // ═══════════════════════════════════════
+
+    function placeNeuron3D(node, idx) {
+      const r = BRAIN_REGIONS[node.type] || BRAIN_REGIONS.decision;
+      let [cx,cy,cz] = r.center;
+      if (node.type==='pattern') cx = Math.abs(cx)*(idx%2===0?1:-1);
+      return new THREE.Vector3(gaussRandom(cx,r.spread*0.45), gaussRandom(cy,r.spread*0.35), gaussRandom(cz,r.spread*0.45));
+    }
+    function createNeuron3D(node, pos) {
+      const color = TYPE_COLORS[node.type]||0xffffff, op = STATUS_OPACITY[node.status]||0.8;
+      const sz = 0.13 + (node.connectionCount||0)*0.025;
+      const g = new THREE.Group(); g.position.copy(pos); g.userData.nodeId = node.id;
+      const coreMat = new THREE.MeshBasicMaterial({color,transparent:true,opacity:op});
+      g.add(new THREE.Mesh(new THREE.SphereGeometry(sz,14,10), coreMat));
+      const glowMat = new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.08,depthWrite:false,blending:THREE.AdditiveBlending});
+      g.add(new THREE.Mesh(new THREE.SphereGeometry(sz*2.2,8,6), glowMat));
+      const label = createTextSprite(TYPE_LABELS[node.type]+'-'+node.id.split('-').pop(), colorHex(color), 0.7, 0.75);
+      label.position.set(0, sz*3+0.15, 0); g.add(label);
+      neuronObjects.push({ mesh:g, node, coreMat, glowMat, label, pos });
+      return g;
+    }
+
+    // ═══════════════════════════════════════
+    //  3D: AXONS & IMPULSES
+    // ═══════════════════════════════════════
+
+    function makeAxonCurve(a,b) {
+      const mid = new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);
+      mid.add(mid.clone().normalize().multiplyScalar(a.distanceTo(b)*0.3+0.4));
+      const cp1 = new THREE.Vector3().lerpVectors(a,mid,0.4), cp2 = new THREE.Vector3().lerpVectors(mid,b,0.6);
+      const j=0.3;
+      cp1.x+=(Math.random()-0.5)*j;cp1.y+=(Math.random()-0.5)*j;cp1.z+=(Math.random()-0.5)*j;
+      cp2.x+=(Math.random()-0.5)*j;cp2.y+=(Math.random()-0.5)*j;cp2.z+=(Math.random()-0.5)*j;
+      return new THREE.CubicBezierCurve3(a.clone(),cp1,cp2,b.clone());
+    }
+    function buildConnections3D(data, posMap) {
+      const g = new THREE.Group();
+      for (const link of data.links) {
+        const sp=posMap.get(linkId(link)),tp=posMap.get(linkTid(link)); if(!sp||!tp) continue;
+        const curve=makeAxonCurve(sp,tp), color=REL_COLORS[link.relType]||0x667799;
+        const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,24,0.012,3,false),
+          new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.18,depthWrite:false,blending:THREE.AdditiveBlending}));
+        g.add(mesh); axonObjects.push({mesh,link});
+        const imp=new THREE.Mesh(new THREE.SphereGeometry(0.035,5,3),
+          new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending}));
+        g.add(imp); impulseObjects.push({mesh:imp,curve,t:Math.random(),speed:REL_SPEED[link.relType]||0.12});
+      }
+      return g;
+    }
+
+    // ═══════════════════════════════════════
+    //  3D: POST-PROCESSING & STARFIELD
+    // ═══════════════════════════════════════
+
+    function setupPostProcessing() {
+      composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.45, 0.5, 0.25);
+      composer.addPass(bloom);
+      composer.addPass(new ShaderPass({
+        uniforms:{tDiffuse:{value:null}},
+        vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+        fragmentShader:`uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;c*=mix(.35,1.,1.-smoothstep(.4,1.,length(vUv-.5)));gl_FragColor=vec4(c,1.);}`
+      }));
+      composer.addPass(new OutputPass());
+      return bloom;
+    }
+    function createStarfield() {
+      const n=500, pos=new Float32Array(n*3);
+      for(let i=0;i<n*3;i++) pos[i]=(Math.random()-0.5)*200;
+      const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+      return new THREE.Points(geo, new THREE.PointsMaterial({color:0x223344,size:0.2,transparent:true,opacity:0.5,sizeAttenuation:true}));
+    }
+
+    // ═══════════════════════════════════════
+    //  3D: RAYCASTING
+    // ═══════════════════════════════════════
+
+    function findNeuronAt3D(e) {
+      mouse.x=(e.clientX/window.innerWidth)*2-1; mouse.y=-(e.clientY/window.innerHeight)*2+1;
+      raycaster.setFromCamera(mouse, camera);
+      const hits = raycaster.intersectObjects(neuronObjects.filter(n=>activeTypes.has(n.node.type)).map(n=>n.mesh), true);
+      if(!hits.length) return null;
+      let obj=hits[0].object; while(obj&&!obj.userData.nodeId) obj=obj.parent;
+      return obj ? neuronObjects.find(n=>n.mesh===obj) : null;
+    }
+    function applyHighlight3D() {
+      const has = highlightSet.size > 0;
+      for (const n of neuronObjects) {
+        if (!activeTypes.has(n.node.type)) { n.mesh.visible=false; continue; }
+        n.mesh.visible=true;
+        const lit = !has || highlightSet.has(n.node.id);
+        n.coreMat.opacity = lit ? (has ? 1 : STATUS_OPACITY[n.node.status]||0.8) : 0.05;
+        n.glowMat.opacity = lit ? (has ? 0.15 : 0.08) : 0.005;
+        n.label.material.opacity = lit ? (has ? 1 : 0.85) : 0.08;
+      }
+      for (const a of axonObjects) {
+        if (!has) { a.mesh.material.opacity = 0.18; continue; }
+        const lit = highlightSet.has(linkId(a.link)) && highlightSet.has(linkTid(a.link));
+        a.mesh.material.opacity = lit ? 0.4 : 0.02;
+      }
+    }
+    function onPointerMove3D(e) {
+      const n = findNeuronAt3D(e);
+      renderer.domElement.style.cursor = n ? 'pointer' : 'default';
+      if (n !== hoverNeuron3d) {
+        hoverNeuron3d = n;
+        setHighlightFromNeuron(n ? n.node : null);
+        showTooltip(n ? n.node : null, e);
+      }
+      if (hoverNeuron3d) { const el=document.getElementById('node-tooltip'); el.style.left=(e.clientX+14)+'px'; el.style.top=(e.clientY+14)+'px'; }
+    }
+    function onClick3D(e) {
+      const n = findNeuronAt3D(e);
+      if (n) { selectedNode = n.node; showDetail(n.node); }
+      else { selectedNode = null; document.getElementById('detail-panel').classList.remove('visible'); }
+    }
+    function onDblClick3D(e) {
+      const n = findNeuronAt3D(e); if(!n) return;
+      controls.autoRotate = false;
+      animateCamera(n.pos.clone());
+    }
+    function animateCamera(target) {
+      const dest = target.clone().add(target.clone().normalize().multiplyScalar(3.5));
+      const sP=camera.position.clone(), sT=controls.target.clone(); let p=0;
+      (function go(){p+=0.035;if(p>=1){camera.position.copy(dest);controls.target.copy(target);controls.update();return;}
+      const t=1-Math.pow(1-p,3);camera.position.lerpVectors(sP,dest,t);controls.target.lerpVectors(sT,target,t);controls.update();requestAnimationFrame(go);})();
+    }
+
+    // ═══════════════════════════════════════
+    //  2D: FORCE SIMULATION
+    // ═══════════════════════════════════════
+
+    function init2D() {
+      canvas2d = document.getElementById('canvas-2d');
+      ctx2d = canvas2d.getContext('2d');
+      dpr = Math.min(window.devicePixelRatio, 2);
+      resize2D();
+
+      nodes2d = graphData.nodes.map(n => {
+        const angle = TYPE_ANGLES_2D[n.type] || 0;
+        const dist = 120 + Math.random() * 60;
+        return {
+          ...n,
+          x: Math.cos(angle) * dist + gaussRandom(0, 40),
+          y: Math.sin(angle) * dist + gaussRandom(0, 40),
+          vx: 0, vy: 0,
+          r: 7 + (n.connectionCount || 0) * 2.5
+        };
+      });
+      links2d = graphData.links.map(l => ({ ...l }));
+      simAlpha = 1;
+    }
+
+    function resize2D() {
+      if (!canvas2d) return;
+      canvas2d.width = window.innerWidth * dpr;
+      canvas2d.height = window.innerHeight * dpr;
+      canvas2d.style.width = window.innerWidth + 'px';
+      canvas2d.style.height = window.innerHeight + 'px';
+    }
+
+    function simulate2D() {
+      if (simAlpha < 0.001) return;
+      simAlpha *= 0.997;
+      const a = simAlpha;
+
+      // Repulsion
+      for (let i = 0; i < nodes2d.length; i++) {
+        for (let j = i + 1; j < nodes2d.length; j++) {
+          let dx = nodes2d[j].x - nodes2d[i].x, dy = nodes2d[j].y - nodes2d[i].y;
+          let d2 = dx*dx + dy*dy || 1;
+          let f = 600 * a / d2;
+          let fx = (dx / Math.sqrt(d2)) * f, fy = (dy / Math.sqrt(d2)) * f;
+          nodes2d[i].vx -= fx; nodes2d[i].vy -= fy;
+          nodes2d[j].vx += fx; nodes2d[j].vy += fy;
+        }
+      }
+      // Springs
+      for (const l of links2d) {
+        const s = nodes2d.find(n => n.id === linkId(l)), t = nodes2d.find(n => n.id === linkTid(l));
+        if (!s || !t) continue;
+        let dx = t.x - s.x, dy = t.y - s.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        let f = (dist - 90) * 0.03 * a;
+        let fx = (dx/dist)*f, fy = (dy/dist)*f;
+        s.vx += fx; s.vy += fy; t.vx -= fx; t.vy -= fy;
+      }
+      // Center gravity
+      for (const n of nodes2d) { n.vx -= n.x * 0.008 * a; n.vy -= n.y * 0.008 * a; }
+      // Type clustering
+      const centers = {}, counts = {};
+      for (const n of nodes2d) {
+        if (!centers[n.type]) { centers[n.type] = {x:0,y:0}; counts[n.type] = 0; }
+        centers[n.type].x += n.x; centers[n.type].y += n.y; counts[n.type]++;
+      }
+      for (const t of Object.keys(centers)) { centers[t].x /= counts[t]; centers[t].y /= counts[t]; }
+      for (const n of nodes2d) {
+        if (!centers[n.type]) continue;
+        n.vx += (centers[n.type].x - n.x) * 0.008 * a;
+        n.vy += (centers[n.type].y - n.y) * 0.008 * a;
+      }
+      // Integrate
+      for (const n of nodes2d) {
+        if (drag2d && n.id === drag2d.id) continue;
+        n.vx *= 0.88; n.vy *= 0.88;
+        n.x += n.vx; n.y += n.vy;
+      }
+    }
+
+    function render2D() {
+      const w = canvas2d.width / dpr, h = canvas2d.height / dpr;
+      ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx2d.clearRect(0, 0, w, h);
+      ctx2d.save();
+      ctx2d.translate(w/2 + pan2d.x, h/2 + pan2d.y);
+      ctx2d.scale(zoom2d, zoom2d);
+
+      const has = highlightSet.size > 0;
+
+      // Links
+      for (const l of links2d) {
+        const s = nodes2d.find(n => n.id === linkId(l)), t = nodes2d.find(n => n.id === linkTid(l));
+        if (!s || !t || !activeTypes.has(s.type) || !activeTypes.has(t.type)) continue;
+        const lit = !has || (highlightSet.has(s.id) && highlightSet.has(t.id));
+        ctx2d.strokeStyle = colorHex(REL_COLORS[l.relType] || 0x667799);
+        ctx2d.globalAlpha = lit ? (has ? 0.55 : 0.2) : 0.04;
+        ctx2d.lineWidth = lit && has ? 1.5 : 0.8;
+        ctx2d.beginPath(); ctx2d.moveTo(s.x, s.y); ctx2d.lineTo(t.x, t.y); ctx2d.stroke();
+        if (lit && has) {
+          ctx2d.globalAlpha = 0.4; ctx2d.fillStyle = colorHex(REL_COLORS[l.relType]||0x667799);
+          ctx2d.font = '8px Consolas'; ctx2d.textAlign = 'center';
+          ctx2d.fillText(l.relType, (s.x+t.x)/2, (s.y+t.y)/2 - 4);
+        }
+      }
+
+      // Nodes
+      for (const n of nodes2d) {
+        if (!activeTypes.has(n.type)) continue;
+        const lit = !has || highlightSet.has(n.id);
+        const color = colorHex(TYPE_COLORS[n.type] || 0xffffff);
+
+        // Glow
+        ctx2d.globalAlpha = lit ? 0.15 : 0.02;
+        ctx2d.fillStyle = color;
+        ctx2d.beginPath(); ctx2d.arc(n.x, n.y, n.r * 2, 0, Math.PI*2); ctx2d.fill();
+
+        // Node circle
+        ctx2d.globalAlpha = lit ? (has ? 0.95 : STATUS_OPACITY[n.status]||0.8) : 0.08;
+        ctx2d.fillStyle = color;
+        ctx2d.beginPath(); ctx2d.arc(n.x, n.y, n.r, 0, Math.PI*2); ctx2d.fill();
+
+        // Border
+        ctx2d.strokeStyle = color;
+        ctx2d.globalAlpha = lit ? 0.4 : 0.04;
+        ctx2d.lineWidth = 1;
+        ctx2d.beginPath(); ctx2d.arc(n.x, n.y, n.r + 1, 0, Math.PI*2); ctx2d.stroke();
+
+        // ID label
+        ctx2d.globalAlpha = lit ? 0.9 : 0.07;
+        ctx2d.fillStyle = '#c8d4e8';
+        ctx2d.font = 'bold 10px Consolas'; ctx2d.textAlign = 'center';
+        ctx2d.fillText(n.id, n.x, n.y - n.r - 5);
+
+        // Name
+        ctx2d.globalAlpha = lit ? 0.45 : 0.04;
+        ctx2d.font = '9px Consolas';
+        const name = n.name.length > 35 ? n.name.substring(0, 33) + '\u2026' : n.name;
+        ctx2d.fillText(name, n.x, n.y + n.r + 12);
+      }
+
+      ctx2d.restore();
+      ctx2d.globalAlpha = 1;
+    }
+
+    // 2D interaction
+    function screenToWorld2D(sx, sy) {
+      const w = window.innerWidth, h = window.innerHeight;
+      return { x: (sx - w/2 - pan2d.x) / zoom2d, y: (sy - h/2 - pan2d.y) / zoom2d };
+    }
+    function findNodeAt2D(sx, sy) {
+      const { x, y } = screenToWorld2D(sx, sy);
+      for (let i = nodes2d.length - 1; i >= 0; i--) {
+        const n = nodes2d[i];
+        if (!activeTypes.has(n.type)) continue;
+        if ((x-n.x)**2 + (y-n.y)**2 < (n.r*1.3)**2) return n;
+      }
+      return null;
+    }
+    function setup2DEvents() {
+      const c = canvas2d;
+      c.addEventListener('pointermove', e => {
+        if (drag2d) {
+          dragMoved = true;
+          const p = screenToWorld2D(e.clientX, e.clientY);
+          drag2d.x = p.x; drag2d.y = p.y; drag2d.vx = 0; drag2d.vy = 0;
+          simAlpha = Math.max(simAlpha, 0.05);
+          return;
+        }
+        if (isPanning2d) {
+          pan2d.x += e.clientX - panStart2d.x; pan2d.y += e.clientY - panStart2d.y;
+          panStart2d = { x: e.clientX, y: e.clientY }; return;
+        }
+        const n = findNodeAt2D(e.clientX, e.clientY);
+        c.style.cursor = n ? 'pointer' : 'grab';
+        if (n !== hover2d) {
+          hover2d = n;
+          const gn = n ? graphData.nodes.find(x => x.id === n.id) : null;
+          setHighlightFromNeuron(gn);
+          showTooltip(gn, e);
+        }
+        if (hover2d) { const el=document.getElementById('node-tooltip'); el.style.left=(e.clientX+14)+'px';el.style.top=(e.clientY+14)+'px'; }
+      });
+      c.addEventListener('pointerdown', e => {
+        const n = findNodeAt2D(e.clientX, e.clientY);
+        dragMoved = false;
+        if (n) { drag2d = n; c.style.cursor = 'grabbing'; }
+        else { isPanning2d = true; panStart2d = { x: e.clientX, y: e.clientY }; c.style.cursor = 'grabbing'; }
+      });
+      c.addEventListener('pointerup', e => {
+        if (drag2d && !dragMoved) {
+          const gn = graphData.nodes.find(x => x.id === drag2d.id);
+          if (gn) { selectedNode = gn; showDetail(gn); }
+        }
+        if (!drag2d && !isPanning2d) {
+          selectedNode = null; document.getElementById('detail-panel').classList.remove('visible');
+        }
+        drag2d = null; isPanning2d = false; c.style.cursor = 'grab';
+      });
+      c.addEventListener('wheel', e => {
+        e.preventDefault();
+        const f = e.deltaY > 0 ? 0.92 : 1.08;
+        zoom2d = Math.max(0.15, Math.min(5, zoom2d * f));
+      }, { passive: false });
+    }
+
+    // ═══════════════════════════════════════
+    //  SHARED: HIGHLIGHT & HUD
+    // ═══════════════════════════════════════
+
+    function setHighlightFromNeuron(node) {
+      highlightSet.clear();
+      if (node) {
+        highlightSet.add(node.id);
+        for (const l of graphData.links) {
+          const s = linkId(l), t = linkTid(l);
+          if (s === node.id) highlightSet.add(t);
+          if (t === node.id) highlightSet.add(s);
+        }
+      }
+      if (currentView === '3d') applyHighlight3D();
+    }
+
+    function showTooltip(node, e) {
+      const el = document.getElementById('node-tooltip');
+      if (!node) { el.style.opacity = '0'; return; }
+      const c = colorHex(TYPE_COLORS[node.type]||0xffffff);
+      const stale = node.isStale ? ` <span style="color:#cc6600">${node.daysSinceReview}d stale</span>` : '';
+      el.innerHTML = `<div style="color:${c};font-size:10px;letter-spacing:0.5px">${TYPE_LABELS[node.type]} : ${node.id}</div>
+        <div style="margin-top:3px">${node.name}</div>
+        <div style="color:var(--text-secondary);margin-top:3px;font-size:10px">${node.status} \u2022 ${node.connectionCount} conn${stale}</div>`;
+      el.style.opacity = '1';
+    }
+
+    function updateHud(data) {
+      const el = document.getElementById('hud-stats');
+      const total = data.nodes.length, links = data.links.length;
+      const stale = data.nodes.filter(n => n.isStale).length;
+      const health = total > 0 ? Math.round(((total - stale) / total) * 100) : 100;
+      const byType = {};
+      for (const n of data.nodes) byType[n.type] = (byType[n.type]||0)+1;
+      const typeHtml = Object.entries(byType).map(([t,c])=>
+        `<span style="color:${colorHex(TYPE_COLORS[t]||0xffffff)}">${TYPE_LABELS[t]} ${c}</span>`
+      ).join(' &nbsp; ');
+      const bc = health>=80?'#00cc77':health>=50?'#ddaa00':'#dd3344';
+      el.innerHTML = `<div class="title">Neural Cortex</div>
+        <div class="row"><span class="big">${total}</span><span class="sub">neurons</span></div>
+        <div class="row"><span class="sub">${links} synapses</span></div>
+        <div class="types">${typeHtml}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${health}%;background:${bc}"></div></div>
+        <div class="health" style="color:${bc}">Health ${health}%${stale?' \u2014 '+stale+' stale':''}</div>`;
+    }
+
+    function showDetail(node) {
+      const panel = document.getElementById('detail-panel');
+      const c = colorHex(TYPE_COLORS[node.type]||0xffffff);
+      const tags = (node.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
+      const files = (node.files||[]).map(f=>`<div class="file-item">\u2514 ${f}</div>`).join('');
+      const nl = graphData.links.filter(l=>linkId(l)===node.id||linkTid(l)===node.id);
+      const conns = nl.map(l=>{
+        const oid = linkId(l)===node.id ? linkTid(l) : linkId(l);
+        const other = graphData.nodes.find(n=>n.id===oid);
+        const rc = colorHex(REL_COLORS[l.relType]||0x667799);
+        return `<div class="conn-item"><span class="conn-rel" style="color:${rc}">[${l.relType}]</span> ${oid}${other?`<div class="conn-name">${other.name}</div>`:''}</div>`;
+      }).join('');
+      panel.innerHTML = `<div class="header"><div style="color:${c};font-size:12px;letter-spacing:0.5px">${TYPE_LABELS[node.type]} : ${node.id}</div>
+        <button class="close-btn" id="close-detail">\u2715</button></div>
+        <div class="entry-title">${node.name}</div>
+        <div class="meta">Status: <span style="color:${c}">${node.status}</span> \u2022 ${node.date} \u2022 ${node.daysSinceReview}d since review</div>
+        ${tags?`<div style="margin-bottom:8px">${tags}</div>`:''}
+        ${files?`<div class="section-label">Files</div>${files}`:''}
+        ${conns?`<div class="section-label">Synapses (${nl.length})</div>${conns}`:''}`;
+      panel.classList.add('visible');
+      document.getElementById('close-detail').onclick = () => { panel.classList.remove('visible'); selectedNode = null; };
+    }
+
+    function setupFilters(data) {
+      const c = document.getElementById('type-filters'); c.innerHTML = '';
+      for (const [type, color] of Object.entries(TYPE_COLORS)) {
+        const cnt = data.nodes.filter(n=>n.type===type).length; if(!cnt) continue;
+        const hex = colorHex(color);
+        const btn = document.createElement('div');
+        btn.className = 'glass filter-btn'; btn.style.color = hex; btn.style.borderColor = hex + '22';
+        btn.innerHTML = `<span class="filter-dot" style="background:${hex}"></span>${TYPE_LABELS[type]} (${cnt})`;
+        btn.onclick = () => {
+          if (activeTypes.has(type)) { activeTypes.delete(type); btn.style.opacity='0.3'; btn.querySelector('.filter-dot').style.background='#333'; }
+          else { activeTypes.add(type); btn.style.opacity='1'; btn.querySelector('.filter-dot').style.background=hex; }
+          if (currentView === '3d') {
+            for (const n of neuronObjects) n.mesh.visible = activeTypes.has(n.node.type);
+            for (const a of axonObjects) {
+              const sn=graphData.nodes.find(x=>x.id===linkId(a.link)), tn=graphData.nodes.find(x=>x.id===linkTid(a.link));
+              a.mesh.visible = sn && tn && activeTypes.has(sn.type) && activeTypes.has(tn.type);
+            }
+          }
+        };
+        c.appendChild(btn);
+      }
+    }
+
+    function setupRegionLegend(data) {
+      const el = document.getElementById('region-legend');
+      const used = new Set(data.nodes.map(n=>n.type));
+      let html = '<div class="rl-title">Brain Regions</div>';
+      for (const [type,r] of Object.entries(BRAIN_REGIONS)) {
+        if (!used.has(type)) continue;
+        html += `<div class="rl-item"><span class="rl-dot" style="background:${colorHex(TYPE_COLORS[type])}"></span>
+          <span>${TYPE_LABELS[type]}</span><span class="rl-region">${r.label}</span></div>`;
+      }
+      el.innerHTML = html;
+    }
+
+    function setupTimeline(data) {
+      if (!data.nodes.length) { document.getElementById('timeline').style.display='none'; return; }
+      const dates = data.nodes.map(n=>new Date(n.date).getTime()).filter(d=>!isNaN(d));
+      if (!dates.length) return;
+      const min=Math.min(...dates), max=Math.max(...dates), range=max-min||1;
+      const track = document.querySelector('.timeline-track'); track.innerHTML = '';
+      for (const node of data.nodes) {
+        const t=new Date(node.date).getTime(); if(isNaN(t)) continue;
+        const dot = document.createElement('div'); dot.className = 'tl-dot';
+        dot.style.left = `${((t-min)/range)*100}%`;
+        dot.style.backgroundColor = colorHex(TYPE_COLORS[node.type]||0xffffff);
+        dot.title = `${node.id}: ${node.name}`;
+        track.appendChild(dot);
+      }
+      const sorted = [...data.nodes].sort((a,b)=>new Date(a.date)-new Date(b.date));
+      document.getElementById('tl-start').textContent = sorted[0].date;
+      document.getElementById('tl-end').textContent = sorted.at(-1).date;
+    }
+
+    function setupSearch() {
+      const input = document.getElementById('search-input'), results = document.getElementById('search-results');
+      input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        if (!q) { results.classList.remove('visible'); highlightSet.clear(); if(currentView==='3d') applyHighlight3D(); return; }
+        const matches = graphData.nodes.filter(n=>
+          n.id.toLowerCase().includes(q)||n.name.toLowerCase().includes(q)||(n.tags||[]).some(t=>t.toLowerCase().includes(q)));
+        results.innerHTML = matches.length
+          ? matches.slice(0,8).map(n=>`<div class="search-item" data-id="${n.id}"><span class="si-id" style="color:${colorHex(TYPE_COLORS[n.type]||0xffffff)}">${n.id}</span>${n.name}</div>`).join('')
+          : '<div class="search-item" style="color:var(--text-secondary)">No matches</div>';
+        results.classList.add('visible');
+        highlightSet.clear(); matches.forEach(m=>highlightSet.add(m.id));
+        if (currentView === '3d') applyHighlight3D();
+        results.querySelectorAll('.search-item[data-id]').forEach(el=>{
+          el.onclick = ()=>{
+            const node=graphData.nodes.find(n=>n.id===el.dataset.id);
+            if(node){selectedNode=node;showDetail(node);
+              if(currentView==='3d') focusNeuron3D(node.id);
+              else focusNode2D(node.id);
+            }
+            results.classList.remove('visible'); input.value='';
+            highlightSet.clear(); if(currentView==='3d') applyHighlight3D();
+          };
+        });
+      });
+      input.addEventListener('keydown', e=>{
+        if(e.key==='Escape'){input.value='';results.classList.remove('visible');highlightSet.clear();if(currentView==='3d')applyHighlight3D();input.blur();}
+      });
+    }
+    function focusNeuron3D(id) {
+      const n = neuronObjects.find(x=>x.node.id===id); if(!n) return;
+      controls.autoRotate=false; animateCamera(n.pos.clone());
+    }
+    function focusNode2D(id) {
+      const n = nodes2d.find(x=>x.id===id); if(!n) return;
+      // Center on node
+      pan2d.x = -n.x * zoom2d; pan2d.y = -n.y * zoom2d;
+    }
+
+    // ═══════════════════════════════════════
+    //  VIEW SWITCHING
+    // ═══════════════════════════════════════
+
+    function switchView(view) {
+      if (view === currentView) return;
+      currentView = view;
+      highlightSet.clear(); hoverNeuron3d = null; hover2d = null;
+      document.getElementById('node-tooltip').style.opacity = '0';
+
+      if (view === '3d') {
+        renderer.domElement.style.display = 'block';
+        canvas2d.style.display = 'none';
+        document.getElementById('region-legend').style.display = '';
+        document.getElementById('controls-hint').textContent = 'Drag rotate \u2022 Scroll zoom \u2022 Click select \u2022 Double-click focus \u2022 Esc deselect';
+        applyHighlight3D();
+      } else {
+        renderer.domElement.style.display = 'none';
+        canvas2d.style.display = 'block';
+        document.getElementById('region-legend').style.display = 'none';
+        document.getElementById('controls-hint').textContent = 'Drag nodes \u2022 Scroll zoom \u2022 Click select \u2022 Right-drag pan \u2022 Esc deselect';
+        if (!nodes2d.length) init2D();
+      }
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    }
+
+    // ═══════════════════════════════════════
+    //  ANIMATION LOOP
+    // ═══════════════════════════════════════
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (currentView === '3d') {
+        const dt = clock.getDelta(), elapsed = clock.getElapsedTime();
+        for (const u of brainUniforms) u.time.value = elapsed;
+        for (const n of neuronObjects) {
+          if (!n.mesh.visible) continue;
+          n.mesh.scale.setScalar(1 + Math.sin(elapsed * 1.2 + n.node.id.charCodeAt(n.node.id.length-1)*0.7) * 0.05);
+        }
+        for (const imp of impulseObjects) { imp.t=(imp.t+imp.speed*dt)%1; imp.mesh.position.copy(imp.curve.getPointAt(Math.abs(imp.t))); }
+        controls.update();
+        composer.render();
+      } else {
+        simulate2D();
+        render2D();
+      }
+    }
+
+    // ═══════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════
+
+    async function init() {
+      graphData = await fetchGraphData();
+
+      // 3D setup
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setClearColor(0x0a0e1a, 1);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      document.body.prepend(renderer.domElement);
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+      camera.position.set(7, 5, 13);
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; controls.dampingFactor = 0.06;
+      controls.rotateSpeed = 0.5; controls.minDistance = 4; controls.maxDistance = 35;
+      controls.autoRotate = true; controls.autoRotateSpeed = 0.15;
+
+      scene.add(new THREE.AmbientLight(0x0a1020, 0.2));
+      const stars = createStarfield(); scene.add(stars);
+      scene.add(buildBrain());
+
+      const posMap = new Map();
+      graphData.nodes.forEach((node, i) => {
+        const pos = placeNeuron3D(node, i); posMap.set(node.id, pos);
+        scene.add(createNeuron3D(node, pos));
+      });
+      const usedTypes = new Set(graphData.nodes.map(n => n.type));
+      for (const [type, r] of Object.entries(BRAIN_REGIONS)) {
+        if (!usedTypes.has(type)) continue;
+        scene.add(createRegionLabel(r.label, new THREE.Vector3(r.center[0], r.center[1]+r.spread*0.7, r.center[2]), colorHex(TYPE_COLORS[type])));
+      }
+      scene.add(buildConnections3D(graphData, posMap));
+      const bloom = setupPostProcessing();
+
+      // 3D events
+      renderer.domElement.addEventListener('pointermove', onPointerMove3D);
+      renderer.domElement.addEventListener('click', onClick3D);
+      renderer.domElement.addEventListener('dblclick', onDblClick3D);
+      renderer.domElement.addEventListener('pointerdown', () => { controls.autoRotate = false; });
+
+      // 2D setup
+      init2D();
+      setup2DEvents();
+
+      // HUD
+      updateHud(graphData); setupFilters(graphData); setupRegionLegend(graphData);
+      setupTimeline(graphData); setupSearch();
+
+      // View toggle
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchView(btn.dataset.view));
+      });
+
+      // Global events
+      window.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          selectedNode = null;
+          document.getElementById('detail-panel').classList.remove('visible');
+          highlightSet.clear();
+          if (currentView === '3d') applyHighlight3D();
+        }
+      });
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        composer.setSize(window.innerWidth, window.innerHeight);
+        bloom.resolution.set(window.innerWidth, window.innerHeight);
+        resize2D();
+      });
+
+      animate();
+      (function spin() { stars.rotation.y += 0.00002; requestAnimationFrame(spin); })();
+    }
+
+    init().catch(err => {
+      document.body.innerHTML = `<div style="color:#dd3344;padding:40px;font-family:monospace">
+        <h2 style="color:var(--accent)">Neural Cortex Error</h2>
+        <p style="margin-top:12px">${err.message}</p>
+        <p style="color:#5a7090;margin-top:12px">Ensure server is running and .brain/index.json exists.</p></div>`;
+    });
+  </script>
+</body>
+</html>
