@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Brain PostToolUse Hook — Automatic documentation reminder
- * 
+ *
  * Triggered after file-modifying tools complete.
  * Reminds Claude to consider recording the change as a brain entry.
  */
@@ -33,12 +33,13 @@ process.stdin.on('end', () => {
         const output = {
             hookSpecificOutput: {
                 hookEventName: "PostToolUse",
-                additionalContext: `🧠 BRAIN: Muokkasit tiedostoa "${filePath}". ` +
-                    `Oliko tämä merkittävä muutos? Harkitse tallentamista: ` +
-                    `brain_record_decision (arkkitehtuuripäätös), ` +
-                    `brain_record_implementation (toteutus), ` +
-                    `brain_record_bug (bugikorjaus). ` +
-                    `Käytä brain_link_entries yhdistääksesi uudet merkinnät olemassa oleviin.`
+                additionalContext: `BRAIN: You edited "${filePath}". ` +
+                    `Was this a significant change? Consider recording it: ` +
+                    `brain_record_decision (architecture decision), ` +
+                    `brain_record_implementation (implementation), ` +
+                    `brain_record_bug (bug fix), ` +
+                    `brain_record_lesson (lesson learned). ` +
+                    `Use brain_link_entries to connect new entries to existing ones.`
             }
         };
         console.log(JSON.stringify(output));

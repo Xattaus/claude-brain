@@ -53,13 +53,13 @@ process.stdin.on('end', async () => {
 
                         rulesText = `\n\n`;
                         for (const rule of top) {
-                            const icon = { DO: '✅', DONT: '🚫', GUARD: '🛡️' }[rule.type] || '📋';
-                            rulesText += `${icon} ${rule.type}: ${rule.text} (${rule.source_id})\n`;
+                            const icon = { DO: 'DO', DONT: 'DONT', GUARD: 'GUARD' }[rule.type] || 'RULE';
+                            rulesText += `[${icon}] ${rule.text} (${rule.source_id})\n`;
                         }
                         if (rules.length > 5) {
-                            rulesText += `... ja ${rules.length - 5} muuta sääntöä\n`;
+                            rulesText += `... and ${rules.length - 5} more rules\n`;
                         }
-                        rulesText += `\nTäysi konteksti: kutsu brain_preflight({ files: ["${filePath}"] })`;
+                        rulesText += `\nFull context: call brain_preflight({ files: ["${filePath}"] })`;
                     }
                 }
             } catch {
@@ -67,10 +67,10 @@ process.stdin.on('end', async () => {
             }
         }
 
-        const baseMessage = `🧠 BRAIN FIREWALL: "${filePath}"`;
+        const baseMessage = `BRAIN FIREWALL: Editing "${filePath}"`;
         const fallback = rulesText
             ? baseMessage + rulesText
-            : `${baseMessage}\nOletko kutsunut brain_preflight tälle tiedostolle?`;
+            : `${baseMessage}\nHave you called brain_preflight for this file? It is MANDATORY before edits.`;
 
         const output = {
             hookSpecificOutput: {

@@ -1,112 +1,139 @@
-# Projektin Aivot (Autonominen Kontekstinhallinta)
+# Project Brain (Autonomous Context Management)
 
-Tässä projektissa on käytössä autonominen kontekstinhallintajärjestelmä.
-Aivot sijaitsevat `.brain/`-kansiossa ja niitä käytetään MCP-työkaluilla.
+This project uses an autonomous context management system.
+The brain lives in the `.brain/` directory and is accessed via MCP tools.
 
-## Pakolliset toimintaohjeet
+## COGNITIVE FIREWALL — Automatic Protection
 
-### Istunnon alussa
-1. Kutsu `brain_get_overview` saadaksesi projektin yleiskuvan + terveysvaroitukset
-2. Kutsu `brain_get_backlog` nähdäksesi keskeneräiset suunnitelmat ja lykätyt tehtävät
-3. Arvioi onko jokin lykätty tehtävä nyt ajankohtainen
-4. ÄLÄ lue .brain/-tiedostoja suoraan — käytä MCP-työkaluja
+### BEFORE editing files (MANDATORY)
+Call `brain_preflight` BEFORE editing any file:
+```
+brain_preflight({ files: ["path/to/file.js"], intent: "what you plan to do" })
+```
 
-### Kun työskentelet
-1. **Ennen muutoksia**: Kutsu `brain_check_conflicts` tarkistaaksesi ristiriidat
-2. **Tiedostokonteksti**: Kutsu `brain_get_context_for_files` saadaksesi kaikki tiedostoihin liittyvät päätökset, bugit, toteutukset ja mallit
-3. **Tiedon hakuun**: Käytä `brain_search` tai `brain_list` — EI grep .brain/
-4. **Kun tarvitset yksityiskohtia**: `brain_get_entry` yksittäiselle tietoyksikölle
+- RISK >= 70 (HIGH): **STOP**, inform the user, ask for permission
+- RISK >= 40 (MEDIUM): Read all rules carefully before proceeding
+- RISK < 40 (LOW/SAFE): Proceed, but follow all rules
 
-### Muutosten jälkeen — tallenna AINA aivoihin
-1. **Arkkitehtuuripäätös** → `brain_record_decision` (MIKSI näin tehtiin)
-2. **Bugikorjaus** → `brain_record_bug` (oireet, juurisyy, korjaus)
-3. **Uusi toteutus/merkittävä muutos** → `brain_record_implementation`
-4. **Uudelleenkäytettävä malli** → `brain_record_pattern`
-5. **Suunnitelma** → `brain_record_plan` (mitä suunniteltiin, toteutettiin, lykättiin)
-6. **Yhteyksien luominen** → `brain_link_entries` merkintöjen välille (implements, fixes, supersedes, jne.)
+**NEVER** skip DONT or GUARD rules.
 
-### Session lopussa — tallenna suunnitelmat!
-Jos työ jäi kesken tai tehtäviä lykättiin:
-1. Kutsu `brain_record_plan` tallentaaksesi suunnitelman, toteutetut osat ja lykätyt tehtävät
-2. Merkitse selkeästi MIKSI kukin asia lykättiin
-3. Kirjaa seuraavat askeleet
-4. Käytä `brain_update_plan` päivittääksesi olemassa olevaa suunnitelmaa
+### AFTER editing (significant changes)
+```
+brain_validate_change({ files: [...], change_description: "...", changes_summary: "..." })
+```
+If FAIL: **REVERT** or ask the user.
 
-### Terveyden seuranta
-- `brain_health` — terveysraportti (vanhentuneet, orvot, rikkinäiset linkit)
-- `brain_review_entry` — merkitse tarkistetuksi ilman sisällön muuttamista
+## Mandatory Instructions
 
-### Yhteydet (Relationships)
+### At session start
+1. Call `brain_get_overview` to get the project overview + health warnings
+2. Call `brain_get_lessons` to review learned lessons — DO NOT repeat past mistakes
+3. Call `brain_get_backlog` to see incomplete plans and deferred tasks
+4. Evaluate if any deferred task is now relevant
+5. DO NOT read .brain/ files directly — use MCP tools
 
-Merkintöjä voi linkittää toisiinsa tyypitetyin suhtein:
-- `supersedes` / `superseded_by` — uusi päätös korvaa vanhan
-- `implements` — toteutus toteuttaa päätöksen
-- `fixes` — bugikorjaus korjaa bugin
-- `caused_by` — aiheutui toisesta merkinnästä
-- `used_in` — käytetään toisessa
-- `relates_to` — yleinen yhteys
+### While working
+1. **Before changes**: Call `brain_check_conflicts` to check for conflicts with existing decisions
+2. **File context**: Call `brain_get_context_for_files` to get all decisions, bugs, implementations, and patterns related to the files you're editing
+3. **Searching**: Use `brain_search` or `brain_list` — NOT grep on .brain/
+4. **Details**: Use `brain_get_entry` for a single entry
 
-Käytä `brain_link_entries` suhteen luomiseen — se luo automaattisesti kaksisuuntaisen linkin.
-Uutta päätöstä tallennettaessa voit käyttää `supersedes`-parametria vanhan päätöksen korvaamiseen.
+### After changes — ALWAYS save to brain
+1. **Architecture decision** → `brain_record_decision` (record WHY this choice was made)
+2. **Bug fix** → `brain_record_bug` (symptoms, root cause, fix)
+3. **New implementation / significant change** → `brain_record_implementation`
+4. **Reusable pattern** → `brain_record_pattern`
+5. **Lesson from mistake** → `brain_record_lesson` (what happened, lesson, rule)
+6. **Plan** → `brain_record_plan` (what was planned, done, deferred)
+7. **Create links** → `brain_link_entries` between entries (implements, fixes, supersedes, etc.)
 
-### Ristiriitavaroitukset
-Jos `brain_check_conflicts` palauttaa osumia:
-- **PYSÄHDY** ja ilmoita käyttäjälle ennen jatkamista
-- Kerro mikä aiempi päätös on ristiriidassa ja miksi
-- Kysy haluaako käyttäjä ohittaa, päivittää vai perua muutoksen
-- Kriittiset/korkean prioriteetin bugit nostetaan CONFLICT-tasolle (ei vain WARNING)
+### Self-Improvement Loop
+When the user corrects you or you discover a mistake:
+1. **ALWAYS** record a lesson with `brain_record_lesson`
+2. Write a concrete **rule** that prevents the same mistake from recurring
+3. Set severity: `high` = critical error, `medium` = normal, `low` = best practice
+4. Set trigger: `correction` = user corrected, `discovery` = self-discovered, `bug` = via bug, `review` = during review
 
-## .brain/-kansion rakenne
-- `overview.md` — Projektin yleiskuvaus (kompakti)
-- `decisions/` — Arkkitehtuuripäätökset (ADR-formaatti)
-- `implementations/` — Toteutuskuvaukset
-- `bugs/` — Bugikorjaukset ja workaroundit
-- `patterns/` — Uudelleenkäytettävät mallit
-- `plans/` — Suunnitelmat ja lykätyt tehtävät
-- `history/changelog.md` — Muutoshistoria
+### At session end — save plans!
+If work is incomplete or tasks were deferred:
+1. Call `brain_record_plan` to save the plan, completed parts, and deferred tasks
+2. Clearly mark WHY each item was deferred
+3. Record next steps
+4. Use `brain_update_plan` to update an existing plan
 
-## Bundled agentit — käytä proaktiivisesti!
+### Health monitoring
+- `brain_health` — health report (stale entries, orphans, broken links)
+- `brain_review_entry` — mark entry as reviewed without changing content
 
-Projektiin on asennettu erikoisagentit aivojen hallintaan. Käytä niitä **automaattisesti** ilman käyttäjän erillistä pyyntöä kun tilanne edellyttää:
+### Relationships
 
-### brain-curator — Aivojen terveydenhoitaja
-- **Milloin**: Aja istunnon alussa jos `brain_health` raportoi ongelmia (stale, orvot, rikkinäiset linkit)
-- **Triggerit**: health-varoitukset overviewssä, >5 vanhentunutta merkintää, rikkinäiset linkit
+Entries can be linked with typed relationships:
+- `supersedes` / `superseded_by` — new decision replaces old one
+- `implements` — implementation fulfills a decision
+- `fixes` — bug fix resolves a bug
+- `caused_by` — caused by another entry
+- `used_in` — used in another entry
+- `relates_to` — general relationship
 
-### brain-documenter — Dokumentoimattomien muutosten tunnistaja
-- **Milloin**: Aja automaattisesti kun käyttäjä pyytää koodimuutoksia ja git-historiassa näkyy aikaisempia dokumentoimattomia muutoksia
-- **Triggerit**: Uuden session alussa jos edellisessä sessiossa tehtiin muutoksia, käyttäjä pyytää "päivitä dokumentaatio"
-- Käyttää `brain_mine_sessions`-työkalua keskustelukontekstin louhintaan
+Use `brain_link_entries` to create a relationship — it automatically creates a bidirectional link.
+When recording a new decision, you can use the `supersedes` parameter to replace an old decision.
 
-### brain-reviewer — Konsistenssin validoija
-- **Milloin**: Aja kun brain-merkinnät alkavat tuntua vanhoilta tai käyttäjä raportoi "aivot eivät vastaa koodia"
-- **Triggerit**: Iso refaktorointi tehty, monta vanhentunutta merkintää, käyttäjä kyseenalaistaa aivojen luotettavuutta
+### Conflict warnings
+If `brain_check_conflicts` returns matches:
+- **STOP** and inform the user before proceeding
+- Explain which previous decision conflicts and why
+- Ask if the user wants to override, update, or cancel the change
+- Critical/high-priority bugs are escalated to CONFLICT level (not just WARNING)
 
-### brain-backlog — Backlogin hallitsija
-- **Milloin**: Aja istunnon alussa jos `brain_get_backlog` palauttaa avoimia suunnitelmia
-- **Triggerit**: >3 keskeneräistä suunnitelmaa, lykätty tehtävä joka on nyt relevantti, käyttäjä kysyy "mitä pitäisi tehdä seuraavaksi"
+## .brain/ directory structure
+- `overview.md` — Project overview (compact)
+- `decisions/` — Architecture Decision Records (ADR format)
+- `implementations/` — Implementation descriptions
+- `bugs/` — Bug fixes and workarounds
+- `patterns/` — Reusable patterns
+- `lessons/` — Lessons learned from mistakes and corrections
+- `plans/` — Plans and deferred tasks
+- `history/changelog.md` — Change history
 
-### architect — Järjestelmäarkkitehti
-- **Milloin**: Käytä kun käyttäjä pyytää uutta ominaisuutta, isoa refaktorointia tai arkkitehtuurimuutosta
-- **Triggerit**: "suunnittele", "miten toteuttaisin", uusi moduuli/komponentti, iso rakenteellinen muutos
-- READ-ONLY — suunnittelee mutta ei implementoi. Tuottaa arkkitehtuurikaaviot, API-suunnittelun, tietomallin ja toteutussuunnitelman
+## Bundled agents — use proactively!
 
-### code-reviewer — Koodikatselmoija
-- **Milloin**: Käytä automaattisesti merkittävien koodimuutosten jälkeen tai kun käyttäjä pyytää katselmointia
-- **Triggerit**: Iso PR/muutos valmis, käyttäjä pyytää "tarkista koodi", uusi feature toteutettu, ennen committia kriittisessä koodissa
-- Tarkistaa bugit, tietoturva-aukot, suorituskykyongelmat ja koodin laadun
+This project includes specialized agents for brain management. Use them **automatically** without asking the user when the situation calls for it:
 
-### test-writer — Testien kirjoittaja
-- **Milloin**: Käytä kun uusi koodi tarvitsee testejä tai käyttäjä pyytää testien kirjoittamista
-- **Triggerit**: Uusi feature toteutettu ilman testejä, käyttäjä pyytää "kirjoita testit", bugikorjaus joka tarvitsee regressiotestin
-- Tunnistaa automaattisesti projektin testausframeworkin ja noudattaa olemassa olevia testikäytäntöjä
+### brain-curator — Brain health maintainer
+- **When**: Run at session start if `brain_health` reports issues (stale, orphans, broken links)
+- **Triggers**: Health warnings in overview, >5 stale entries, broken links
 
-### security-scanner — Tietoturva-auditoija
-- **Milloin**: Käytä kun koodissa käsitellään autentikointia, syötteitä, salaisuuksia tai ulkoisia integraatioita
-- **Triggerit**: Auth-muutokset, API-endpointit, riippuvuuspäivitykset, käyttäjä pyytää "tarkista tietoturva", uusi ulkoinen integraatio
-- Skannaa OWASP Top 10 -haavoittuvuudet, kovakoodatut salaisuudet, riippuvuuksien tunnetut haavoittuvuudet
+### brain-documenter — Undocumented change detector
+- **When**: Run automatically when the user requests code changes and git history shows previously undocumented changes
+- **Triggers**: New session start if previous session had changes, user requests "update documentation"
+- Uses `brain_mine_sessions` to extract conversation context
 
-### Yleissäännöt
-- **ÄLÄ** kysy lupaa agenttien ajamiseen — ne ovat osa normaalia työnkulkua
-- Raportoi tulokset käyttäjälle tiiviisti, älä näytä agentin raaka-outputtia
-- Jos agentti löytää ongelmia, ehdota korjauksia ja toteuta ne jos ne ovat selkeitä
+### brain-reviewer — Consistency validator
+- **When**: Run when brain entries seem outdated or user reports "brain doesn't match code"
+- **Triggers**: Major refactoring done, many stale entries, user questions brain reliability
+
+### brain-backlog — Backlog manager
+- **When**: Run at session start if `brain_get_backlog` returns open plans
+- **Triggers**: >3 incomplete plans, deferred task now relevant, user asks "what should I do next"
+
+### architect — System architect
+- **When**: Use when user requests a new feature, major refactoring, or architecture change
+- **Triggers**: "design", "how would I implement", new module/component, major structural change
+- READ-ONLY — plans but does not implement
+
+### code-reviewer — Code reviewer
+- **When**: Use automatically after significant code changes or when user requests a review
+- **Triggers**: Large PR/change ready, user requests "review code", new feature implemented
+
+### test-writer — Test writer
+- **When**: Use when new code needs tests or user requests test writing
+- **Triggers**: New feature without tests, user requests "write tests", bug fix needing regression test
+
+### security-scanner — Security auditor
+- **When**: Use when code handles authentication, input, secrets, or external integrations
+- **Triggers**: Auth changes, API endpoints, dependency updates, user requests "check security"
+
+### General rules
+- **DO NOT** ask permission to run agents — they are part of normal workflow
+- Report results to the user concisely, do not show raw agent output
+- If an agent finds issues, suggest fixes and implement them if they are straightforward

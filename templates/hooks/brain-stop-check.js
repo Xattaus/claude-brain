@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Brain Stop Hook  
- * 
+ * Brain Stop Hook
+ *
  * Called by Claude Code's Stop hook.
  * Reads stdin for stop context, then checks if there are
  * undocumented changes that should be saved to brain.
- * 
+ *
  * Uses "block" decision to prevent stopping if brain work is detected
  * but not yet saved. The reason is shown to Claude who then saves.
  */
@@ -26,10 +26,10 @@ process.stdin.on('end', () => {
         // Output a reminder — Claude will see this and decide whether to save
         const output = {
             decision: "block",
-            reason: "🧠 Ennen lopettamista: Tarkista oletko tallentanut istunnon aikana tehdyt muutokset brain-merkinnöiksi. " +
-                "Jos teit arkkitehtuuripäätöksiä, bugikorjauksia tai merkittäviä toteutuksia, kutsu vastaava brain_record_* -työkalu. " +
-                "Jos istunto jäi kesken, kutsu brain_record_plan. " +
-                "Jos kaikki on tallennettu, voit lopettaa."
+            reason: "BRAIN: Before stopping, verify that all changes from this session have been saved as brain entries. " +
+                "If you made architecture decisions, bug fixes, or significant implementations, call the corresponding brain_record_* tool. " +
+                "If work is incomplete, call brain_record_plan to save the plan and deferred tasks. " +
+                "If everything has been saved, you may stop."
         };
 
         console.log(JSON.stringify(output));

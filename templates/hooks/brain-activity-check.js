@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * Brain Activity Check Hook — Proactive reminder
- * 
+ *
  * PostToolUse hook that tracks tool call count.
  * If more than 10 non-brain tool calls have been made without
  * any brain tool call, injects a reminder.
- * 
- * Uses a simple counter stored in environment variable.
+ *
+ * Uses a simple counter stored in a temp file since hooks are stateless.
  */
 
 let input = '';
@@ -19,13 +19,15 @@ process.stdin.on('end', () => {
 
         // Brain tools reset the counter
         if (toolName.startsWith('brain_')) {
-            // Reset: output nothing, just exit
+            const fs = require('fs');
+            const path = require('path');
+            const counterFile = path.join(process.env.TMPDIR || process.env.TEMP || '/tmp', '.brain-activity-counter');
+            try { fs.writeFileSync(counterFile, '0', 'utf-8'); } catch { /* ignore */ }
             process.exit(0);
             return;
         }
 
         // Non-brain tools: check the counter
-        // We track via a temporary file since hooks are stateless
         const fs = require('fs');
         const path = require('path');
         const counterFile = path.join(process.env.TMPDIR || process.env.TEMP || '/tmp', '.brain-activity-counter');
@@ -43,10 +45,10 @@ process.stdin.on('end', () => {
             const output = {
                 hookSpecificOutput: {
                     hookEventName: "PostToolUse",
-                    additionalContext: `🧠 BRAIN MUISTUTUS: Olet tehnyt ${count} tool-kutsua ilman brain-kutsua. ` +
-                        `Onko muutoksia joita pitäisi tallentaa? ` +
-                        `Harkitse: brain_record_decision, brain_record_implementation, brain_record_bug. ` +
-                        `Tai kutsu brain_check_conflicts tarkistaaksesi ristiriidat.`
+                    additionalContext: `BRAIN REMINDER: You have made ${count} tool calls without any brain call. ` +
+                        `Are there changes that should be recorded? ` +
+                        `Consider: brain_record_decision, brain_record_implementation, brain_record_bug, brain_record_lesson. ` +
+                        `Or call brain_check_conflicts to verify no conflicts exist.`
                 }
             };
             console.log(JSON.stringify(output));
