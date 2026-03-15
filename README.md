@@ -100,6 +100,7 @@ The brain stores knowledge as Markdown files with YAML frontmatter, linked toget
 ├── bugs/                    Root causes and fixes
 ├── patterns/                Reusable conventions
 ├── lessons/                 Mistakes and rules to prevent them
+├── plans/                   Session plans and deferred tasks
 └── history/
     └── changelog.md         Full change log
 ```
@@ -290,7 +291,7 @@ Interactive neural map of your project's knowledge graph:
 node visualize.js /path/to/your/project
 ```
 
-Opens a browser with a force-directed 3D graph — nodes colored by type, links showing relationships, with zoom/pan/rotate controls.
+Opens a browser with an interactive 3D brain visualization built with three.js — neurons colored by type, axon connections showing relationships, with zoom/pan/rotate controls.
 
 <br>
 
@@ -304,9 +305,9 @@ Opens a browser with a force-directed 3D graph — nodes colored by type, links 
 ├─────────────┬──────────────┬──────────────┬─────────────────┤
 │ Brain       │ Search       │ Graph        │ Conflict        │
 │ Manager     │              │              │ Checker         │
-│             │ Two-phase    │ Typed        │ Three-stage     │
-│ CRUD +      │ scoring +    │ relationships│ detection       │
-│ file locks  │ MiniSearch   │ + traversal  │                 │
+│             │ BM25 +       │ Typed        │ Three-phase     │
+│ CRUD +      │ fuzzy +      │ relationships│ detection       │
+│ file locks  │ boost phase  │ + traversal  │                 │
 ├─────────────┼──────────────┼──────────────┼─────────────────┤
 │ Change      │ Rule Index   │ Analyzer     │ Auto            │
 │ Validator   │              │              │ Documenter      │
@@ -345,7 +346,7 @@ claude-brain/
 ├── visualize.js            3D knowledge graph visualizer
 ├── lib/
 │   ├── brain-manager.js    Core CRUD with file locking
-│   ├── search.js           MiniSearch-powered full-text search
+│   ├── search.js           BM25 + fuzzy search with boost scoring
 │   ├── graph.js            Knowledge graph traversal
 │   ├── conflict-checker.js Decision conflict detection
 │   ├── change-validator.js Post-edit rule validation
