@@ -3,1012 +3,1348 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Brain Neural Map</title>
+  <title>Brain — Knowledge Graph</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-deep: #0a0e1a;
-      --glass-bg: rgba(8, 14, 28, 0.92);
-      --glass-border: rgba(60, 100, 140, 0.25);
-      --text-primary: #c8d4e8;
-      --text-secondary: #5a7090;
-      --accent: #4a90c0;
-      --color-dec: #00ccdd;
-      --color-bug: #dd3344;
-      --color-impl: #00cc77;
-      --color-pat: #9955ee;
-      --color-plan: #ddaa00;
-      --color-les: #dd55aa;
-      --font: 'Consolas', 'Monaco', 'Courier New', monospace;
+      --bg: #0b0f19;
+      --bg-panel: rgba(13, 17, 28, 0.94);
+      --bg-hover: rgba(255,255,255,0.04);
+      --border: rgba(80, 120, 180, 0.12);
+      --border-focus: rgba(80, 160, 220, 0.35);
+      --text: #c0cee0;
+      --text-dim: #4a5a74;
+      --text-muted: #2d3a50;
+      --accent: #3d8ecf;
+
+      --c-decision: #00d4e8;
+      --c-bug: #f04060;
+      --c-implementation: #00d68f;
+      --c-pattern: #a855f7;
+      --c-plan: #f0b020;
+      --c-lesson: #f472b6;
+
+      --font-ui: 'Outfit', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+      --panel-w: 380px;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
     }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      background: var(--bg-deep);
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
       overflow: hidden;
-      font-family: var(--font);
-      color: var(--text-primary);
-    }
-    canvas { display: block; }
-    .glass {
-      background: var(--glass-bg);
-      border: 1px solid var(--glass-border);
-      border-radius: 6px;
-      padding: 12px;
+      cursor: crosshair;
     }
 
-    /* ── View Toggle ── */
-    #view-toggle {
-      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
-      z-index: 110; display: flex; padding: 2px; gap: 0;
-    }
-    .view-btn {
-      background: none; border: none; color: var(--text-secondary);
-      font-family: var(--font); font-size: 11px; padding: 5px 16px;
-      cursor: pointer; border-radius: 4px; transition: all 0.15s;
-    }
-    .view-btn.active { background: rgba(60,100,140,0.3); color: var(--text-primary); }
-    .view-btn:hover { color: var(--text-primary); }
-
-    /* ── 2D Canvas ── */
-    #canvas-2d {
-      position: fixed; top: 0; left: 0;
-      display: none; z-index: 1; cursor: grab;
+    /* ── Grain overlay ── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 9999;
+      pointer-events: none;
+      opacity: 0.025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
 
-    /* ── HUD Stats ── */
-    #hud-stats {
-      position: fixed; top: 16px; left: 16px; z-index: 100;
-      min-width: 220px; pointer-events: none;
+    canvas#graph {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 1;
     }
-    #hud-stats .title {
-      font-size: 10px; letter-spacing: 2px; color: var(--accent);
-      text-transform: uppercase; margin-bottom: 8px;
-      padding-bottom: 6px; border-bottom: 1px solid var(--glass-border);
+
+    /* ── Ambient light gradient ── */
+    #ambient {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 50%, rgba(30,60,100,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 20% 80%, rgba(0,212,232,0.03) 0%, transparent 60%),
+        radial-gradient(ellipse 35% 40% at 85% 20%, rgba(168,85,247,0.025) 0%, transparent 55%);
     }
-    #hud-stats .row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px; }
-    #hud-stats .big { font-size: 18px; }
-    #hud-stats .sub { font-size: 11px; color: var(--text-secondary); }
-    #hud-stats .types { font-size: 10px; margin-top: 6px; line-height: 1.9; }
-    #hud-stats .bar-track {
-      width: 100%; height: 3px; background: rgba(255,255,255,0.05);
-      border-radius: 2px; margin-top: 6px; overflow: hidden;
+
+    /* ── Glass panel base ── */
+    .panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
-    #hud-stats .bar-fill { height: 100%; border-radius: 2px; }
-    #hud-stats .health { font-size: 10px; margin-top: 3px; }
+
+    /* ── Top bar ── */
+    #topbar {
+      position: fixed; top: 14px; left: 14px; right: 14px;
+      z-index: 100;
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 10px;
+      pointer-events: none;
+    }
+    #topbar > * { pointer-events: auto; }
+
+    .logo {
+      font-family: var(--font-mono);
+      font-weight: 600; font-size: 12px;
+      letter-spacing: 1.5px;
+      color: var(--accent);
+      padding: 0 8px;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+    .logo span { color: var(--text-dim); font-weight: 300; }
 
     /* ── Search ── */
-    #search-box { position: fixed; top: 16px; left: 260px; z-index: 100; }
-    #search-input {
-      background: var(--glass-bg); border: 1px solid var(--glass-border);
-      border-radius: 6px; padding: 7px 12px; width: 220px;
-      font-family: var(--font); font-size: 11px;
-      color: var(--text-primary); outline: none;
+    #search-wrap {
+      position: relative;
+      flex: 0 1 280px;
     }
-    #search-input::placeholder { color: var(--text-secondary); }
-    #search-input:focus { border-color: var(--accent); }
-    #search-results { margin-top: 4px; max-height: 240px; overflow-y: auto; display: none; }
-    #search-results.visible { display: block; }
-    .search-item {
-      padding: 6px 10px; font-size: 11px; cursor: pointer;
-      border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s;
+    #search {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 7px 12px 7px 32px;
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 300;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
     }
-    .search-item:hover { background: rgba(255,255,255,0.05); }
-    .search-item .si-id { font-size: 10px; margin-right: 6px; }
+    #search::placeholder { color: var(--text-dim); }
+    #search:focus { border-color: var(--border-focus); background: rgba(255,255,255,0.06); }
+    .search-icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--text-dim); font-size: 13px; pointer-events: none;
+    }
+    .search-kbd {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      font-family: var(--font-mono); font-size: 9px; color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px;
+      pointer-events: none;
+    }
+    #search-results {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      max-height: 300px; overflow-y: auto;
+      display: none; z-index: 110;
+    }
+    #search-results.open { display: block; }
+    .sr-item {
+      padding: 8px 12px;
+      font-size: 12px; cursor: pointer;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      transition: background 0.12s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sr-item:hover { background: var(--bg-hover); }
+    .sr-item:last-child { border-bottom: none; }
+    .sr-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    }
+    .sr-id { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+    .sr-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* ── Type Filters ── */
-    #type-filters {
-      position: fixed; top: 16px; right: 16px; z-index: 99;
-      display: flex; flex-direction: column; gap: 4px;
+    /* ── Type filters ── */
+    #filters {
+      display: flex; gap: 2px; margin-left: auto;
     }
     .filter-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: none; border: 1px solid transparent;
+      border-radius: 6px; padding: 5px 10px;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 400;
+      color: var(--text-dim); cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .filter-btn.active { color: var(--text); border-color: var(--border); }
+    .filter-btn:hover { background: var(--bg-hover); }
+    .filter-btn .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      transition: opacity 0.15s;
+    }
+    .filter-btn:not(.active) .dot { opacity: 0.25; }
+    .filter-btn .count {
+      font-size: 9px; color: var(--text-muted); margin-left: 2px;
+    }
+
+    /* ── Action buttons ── */
+    #actions {
+      display: flex; gap: 4px;
+    }
+    .act-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px;
+      font-family: var(--font-mono); font-size: 10px;
+      color: var(--text-dim); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .act-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border-focus); }
+
+    /* ── Detail panel ── */
+    #detail {
+      position: fixed; top: 60px; right: -420px; width: var(--panel-w);
+      max-height: calc(100vh - 76px);
+      overflow-y: auto; z-index: 100;
+      padding: 18px;
+      transition: right 0.35s var(--ease);
+    }
+    #detail.open { right: 14px; }
+    #detail::-webkit-scrollbar { width: 3px; }
+    #detail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .d-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .d-type-badge {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+      letter-spacing: 1px; text-transform: uppercase;
+      padding: 3px 8px; border-radius: 4px;
+      border: 1px solid;
+    }
+    .d-close {
+      background: none; border: 1px solid var(--border);
+      color: var(--text-dim); font-size: 14px;
+      width: 26px; height: 26px;
+      border-radius: 5px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      font-family: var(--font-mono);
+    }
+    .d-close:hover { border-color: var(--border-focus); color: var(--text); }
+    .d-title {
+      font-size: 15px; font-weight: 500; line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .d-id {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-dim); margin-bottom: 12px;
+    }
+    .d-meta {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px;
+    }
+    .d-chip {
+      font-family: var(--font-mono); font-size: 9px;
+      padding: 2px 8px; border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    .d-section {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text-muted); margin: 16px 0 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .d-file {
+      font-family: var(--font-mono); font-size: 11px;
+      color: var(--text-dim); padding: 2px 0;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .d-file::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+    .d-conn {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
       display: flex; align-items: center; gap: 8px;
-      cursor: pointer; padding: 5px 12px; font-size: 11px;
-      font-family: var(--font); transition: all 0.15s; user-select: none;
+      cursor: pointer;
+      transition: background 0.12s;
+      border-radius: 4px;
+      padding: 6px 8px;
+      margin: 0 -8px;
     }
-    .filter-btn:hover { border-color: rgba(255,255,255,0.25) !important; }
-    .filter-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .d-conn:hover { background: var(--bg-hover); }
+    .d-conn-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .d-conn-rel {
+      font-family: var(--font-mono); font-size: 9px;
+      color: var(--text-muted); letter-spacing: 0.3px; min-width: 70px;
+    }
+    .d-conn-name { font-size: 12px; color: var(--text-dim); }
+    .d-stale-warn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--c-plan);
+      margin-bottom: 10px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      border: 1px solid rgba(240,176,32,0.2);
+      background: rgba(240,176,32,0.05);
+    }
 
-    /* ── Region Legend ── */
-    #region-legend {
-      position: fixed; bottom: 80px; right: 16px; z-index: 90;
-      font-size: 9px; max-width: 160px;
+    /* ── Minimap ── */
+    #minimap {
+      position: fixed; bottom: 80px; right: 14px;
+      width: 160px; height: 120px;
+      z-index: 90;
+      overflow: hidden;
+      cursor: pointer;
     }
-    #region-legend .rl-title {
-      font-size: 9px; letter-spacing: 1.5px; color: var(--text-secondary);
-      text-transform: uppercase; margin-bottom: 6px;
+    #minimap canvas {
+      width: 100%; height: 100%;
     }
-    .rl-item { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; color: var(--text-secondary); }
-    .rl-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-    .rl-region { font-size: 9px; }
-
-    /* ── Detail Panel ── */
-    #detail-panel {
-      position: fixed; top: 16px; right: -400px; width: 370px;
-      max-height: calc(100vh - 32px); overflow-y: auto;
-      transition: right 0.3s cubic-bezier(0.4,0,0.2,1); z-index: 100;
-    }
-    #detail-panel.visible { right: 16px; }
-    #detail-panel .header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--glass-border);
-    }
-    .close-btn {
-      background: none; border: 1px solid rgba(255,255,255,0.08);
-      color: var(--text-secondary); cursor: pointer; font-size: 13px;
-      font-family: var(--font); padding: 1px 7px; border-radius: 3px;
-    }
-    .close-btn:hover { color: var(--text-primary); border-color: rgba(255,255,255,0.2); }
-    #detail-panel .entry-title { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
-    #detail-panel .meta { color: var(--text-secondary); font-size: 10px; margin-bottom: 6px; }
-    #detail-panel .tag {
-      display: inline-block; background: rgba(60,100,140,0.12);
-      border: 1px solid rgba(60,100,140,0.2);
-      padding: 1px 7px; border-radius: 3px; font-size: 9px; margin: 0 3px 3px 0;
-    }
-    #detail-panel .section-label {
-      color: var(--accent); font-size: 9px; letter-spacing: 1.5px;
-      text-transform: uppercase; margin: 10px 0 4px;
-    }
-    .file-item { color: var(--text-secondary); font-size: 10px; padding: 1px 0; }
-    .conn-item { margin-top: 4px; font-size: 11px; }
-    .conn-rel { font-size: 9px; letter-spacing: 0.3px; }
-    .conn-name { color: var(--text-secondary); font-size: 10px; }
-    #detail-panel::-webkit-scrollbar { width: 3px; }
-    #detail-panel::-webkit-scrollbar-track { background: transparent; }
-    #detail-panel::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
-
-    /* ── Tooltip ── */
-    #node-tooltip {
-      position: fixed; pointer-events: none; z-index: 200;
-      font-size: 11px; max-width: 280px; transition: opacity 0.1s; opacity: 0;
+    .minimap-viewport {
+      position: absolute;
+      border: 1px solid rgba(61,142,207,0.4);
+      background: rgba(61,142,207,0.05);
+      pointer-events: none;
     }
 
     /* ── Timeline ── */
     #timeline {
-      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-      z-index: 90; width: min(550px, 75vw); padding: 8px 14px;
+      position: fixed; bottom: 14px; left: 14px; right: 14px;
+      z-index: 90;
+      padding: 8px 16px 10px;
+      display: flex; flex-direction: column;
     }
-    .timeline-label {
-      font-size: 8px; letter-spacing: 1.5px; color: var(--text-secondary);
-      text-transform: uppercase; margin-bottom: 4px;
+    .tl-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 5px;
     }
-    .timeline-track {
-      position: relative; width: 100%; height: 16px;
-      border-bottom: 1px solid rgba(60,100,140,0.2);
+    .tl-label {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 1.5px; color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .tl-range {
+      font-family: var(--font-mono); font-size: 9px; color: var(--text-muted);
+    }
+    .tl-track {
+      position: relative; width: 100%; height: 20px;
     }
     .tl-dot {
       position: absolute; width: 5px; height: 5px; border-radius: 50%;
-      top: 50%; transform: translate(-50%, -50%);
-      cursor: pointer; transition: transform 0.15s;
+      top: 50%; cursor: pointer;
+      transition: transform 0.12s;
+      transform: translate(-50%, -50%);
     }
-    .tl-dot:hover { transform: translate(-50%, -50%) scale(2.5); z-index: 1; }
-    .timeline-range {
+    .tl-dot:hover { transform: translate(-50%, -50%) scale(2.8); z-index: 2; }
+    .tl-line {
+      position: absolute; top: 50%; left: 0; right: 0;
+      height: 1px; background: rgba(255,255,255,0.05);
+    }
+
+    /* ── Stats overlay ── */
+    #stats {
+      position: fixed; bottom: 80px; left: 14px;
+      z-index: 90; padding: 12px 16px;
+      min-width: 180px;
+    }
+    .st-title {
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 1.5px; color: var(--text-muted);
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .st-row {
       display: flex; justify-content: space-between;
-      font-size: 9px; color: var(--text-secondary); margin-top: 3px;
+      font-size: 12px; margin-bottom: 2px;
+    }
+    .st-val { font-family: var(--font-mono); font-weight: 500; }
+    .st-label { color: var(--text-dim); font-size: 11px; }
+    .st-health {
+      margin-top: 8px; padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+    }
+    .st-bar-track {
+      width: 100%; height: 3px; border-radius: 2px;
+      background: rgba(255,255,255,0.04); overflow: hidden;
+      margin-top: 4px;
+    }
+    .st-bar { height: 100%; border-radius: 2px; transition: width 0.5s var(--ease); }
+
+    /* ── Cluster labels ── */
+    .cluster-label {
+      position: fixed; pointer-events: none; z-index: 5;
+      font-family: var(--font-mono); font-size: 9px;
+      letter-spacing: 2px; text-transform: uppercase;
+      opacity: 0.12;
+      transition: opacity 0.3s;
     }
 
     /* ── Controls hint ── */
     #controls-hint {
-      position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%);
-      z-index: 90; font-size: 9px; color: var(--text-secondary);
-      pointer-events: none; opacity: 0.4;
+      position: fixed; bottom: 62px; left: 50%; transform: translateX(-50%);
+      z-index: 80;
+      font-family: var(--font-mono); font-size: 9px;
+      color: var(--text-muted); opacity: 0.4;
+      pointer-events: none;
+      white-space: nowrap;
     }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Animations ── */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s var(--ease) both; }
   </style>
 </head>
 <body>
-  <div id="view-toggle" class="glass">
-    <button class="view-btn active" data-view="3d">3D Brain</button>
-    <button class="view-btn" data-view="2d">2D Graph</button>
-  </div>
-  <canvas id="canvas-2d"></canvas>
-  <div id="hud-stats" class="glass"></div>
-  <div id="search-box">
-    <input id="search-input" type="text" placeholder="Search neurons..." autocomplete="off">
-    <div id="search-results" class="glass"></div>
-  </div>
-  <div id="type-filters"></div>
-  <div id="region-legend" class="glass"></div>
-  <div id="detail-panel" class="glass"></div>
-  <div id="node-tooltip" class="glass"></div>
-  <div id="timeline" class="glass">
-    <div class="timeline-label">Timeline</div>
-    <div class="timeline-track"></div>
-    <div class="timeline-range"><span id="tl-start"></span><span id="tl-end"></span></div>
-  </div>
-  <div id="controls-hint">Drag rotate &bull; Scroll zoom &bull; Click select &bull; Double-click focus &bull; Esc deselect</div>
+  <div id="ambient"></div>
+  <canvas id="graph"></canvas>
 
-  <script type="module">
-    import * as THREE from 'https://esm.sh/three@0.160.0';
-    import { OrbitControls } from 'https://esm.sh/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-    import { EffectComposer } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js';
-    import { RenderPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/RenderPass.js';
-    import { UnrealBloomPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js';
-    import { ShaderPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/ShaderPass.js';
-    import { OutputPass } from 'https://esm.sh/three@0.160.0/examples/jsm/postprocessing/OutputPass.js';
-    import { createNoise3D } from 'https://esm.sh/simplex-noise@4.0.3';
+  <!-- Top bar -->
+  <div id="topbar">
+    <div class="logo">Brain<span> Graph</span></div>
+    <div id="search-wrap">
+      <span class="search-icon">&#9906;</span>
+      <input id="search" type="text" placeholder="Search entries..." autocomplete="off" spellcheck="false">
+      <span class="search-kbd">Ctrl+F</span>
+      <div id="search-results" class="panel"></div>
+    </div>
+    <div id="filters"></div>
+    <div id="actions">
+      <button class="act-btn" id="btn-export" title="Export as PNG">PNG</button>
+      <button class="act-btn" id="btn-reset" title="Reset view">Reset</button>
+    </div>
+  </div>
 
-    // ═══════════════════════════════════════
+  <!-- Detail panel -->
+  <div id="detail" class="panel"></div>
+
+  <!-- Minimap -->
+  <div id="minimap" class="panel">
+    <canvas id="minimap-canvas"></canvas>
+  </div>
+
+  <!-- Stats -->
+  <div id="stats" class="panel fade-in"></div>
+
+  <!-- Timeline -->
+  <div id="timeline" class="panel fade-in"></div>
+
+  <!-- Controls hint -->
+  <div id="controls-hint">Scroll zoom · Drag pan · Click select · Double-click focus · Esc deselect · Ctrl+F search</div>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // ═══════════════════════════════════════════
     //  CONSTANTS
-    // ═══════════════════════════════════════
+    // ═══════════════════════════════════════════
 
     const TYPE_COLORS = {
-      decision: 0x00ccdd, bug: 0xdd3344, implementation: 0x00cc77,
-      pattern: 0x9955ee, plan: 0xddaa00, lesson: 0xdd55aa
+      decision: '#00d4e8', bug: '#f04060', implementation: '#00d68f',
+      pattern: '#a855f7', plan: '#f0b020', lesson: '#f472b6'
     };
     const TYPE_LABELS = {
+      decision: 'Decisions', bug: 'Bugs', implementation: 'Implementations',
+      pattern: 'Patterns', plan: 'Plans', lesson: 'Lessons'
+    };
+    const TYPE_SHORT = {
       decision: 'DEC', bug: 'BUG', implementation: 'IMPL',
       pattern: 'PAT', plan: 'PLAN', lesson: 'LES'
     };
-    const REL_COLORS = {
-      supersedes: 0xcc5500, superseded_by: 0xcc5500,
-      implements: 0x00cc77, fixes: 0xcccc00,
-      caused_by: 0xcc7700, used_in: 0x3377cc, relates_to: 0x667799
-    };
-    const REL_SPEED = {
-      supersedes: 0.3, superseded_by: 0.3, implements: 0.25,
-      fixes: 0.28, caused_by: 0.2, used_in: 0.15, relates_to: 0.12
+    const REL_STYLES = {
+      implements:   { dash: null,    color: '#00d68f', width: 1.2, label: 'implements' },
+      supersedes:   { dash: [6,4],   color: '#cc5500', width: 1.4, label: 'supersedes' },
+      superseded_by:{ dash: [6,4],   color: '#cc5500', width: 1.0, label: 'superseded by' },
+      fixes:        { dash: [3,3],   color: '#f0b020', width: 1.2, label: 'fixes' },
+      caused_by:    { dash: [8,3,2,3],color:'#cc7700', width: 1.0, label: 'caused by' },
+      used_in:      { dash: null,    color: '#3377cc', width: 0.8, label: 'used in' },
+      relates_to:   { dash: [2,3],   color: '#4a5a74', width: 0.6, label: 'relates to' }
     };
     const STATUS_OPACITY = {
       active: 1, current: 1, open: 1,
-      fixed: 0.7, 'wont-fix': 0.5, workaround: 0.6,
-      superseded: 0.35, abandoned: 0.3,
-      planned: 0.85, in_progress: 0.9, partial: 0.8, completed: 0.6
+      fixed: 0.7, 'wont-fix': 0.45, workaround: 0.6,
+      superseded: 0.3, abandoned: 0.25,
+      planned: 0.85, in_progress: 0.9, partial: 0.75, completed: 0.55
     };
-    const BRAIN_REGIONS = {
-      decision:       { center: [0, 1.2, 3.5],  spread: 1.6, label: 'Frontal' },
-      plan:           { center: [0, 0.3, 4.8],  spread: 1.1, label: 'Prefrontal' },
-      implementation: { center: [0, 3.2, 0],    spread: 1.5, label: 'Motor Cortex' },
-      pattern:        { center: [3.8, -0.3, 0], spread: 1.2, label: 'Temporal' },
-      bug:            { center: [0, -1.8, -1],  spread: 1.0, label: 'Amygdala' },
-      lesson:         { center: [0, -0.8, 1.5], spread: 1.1, label: 'Hippocampus' }
-    };
-    const BRAIN_RADIUS = 5;
 
-    // 2D initial cluster positions (angle per type)
-    const TYPE_ANGLES_2D = { decision: -1.2, plan: -1.8, implementation: -0.4, pattern: 0.8, bug: 2.2, lesson: 1.5 };
+    // Physics
+    const REPULSION = 1800;
+    const LINK_STRENGTH = 0.008;
+    const LINK_DISTANCE = 120;
+    const CENTER_GRAVITY = 0.01;
+    const DAMPING = 0.88;
+    const MIN_ALPHA = 0.001;
+    const VELOCITY_LIMIT = 8;
 
-    // ═══════════════════════════════════════
-    //  SHARED STATE
-    // ═══════════════════════════════════════
+    // Rendering
+    const NODE_BASE_RADIUS = 5;
+    const NODE_CONN_SCALE = 1.8;
+    const NODE_MAX_RADIUS = 22;
+    const LABEL_FONT_SIZE = 10;
+    const PARTICLE_COUNT_PER_LINK = 1;
+    const PARTICLE_SPEED = 0.003;
+    const STALE_RING_EXTRA = 4;
 
-    let currentView = '3d';
+    // ═══════════════════════════════════════════
+    //  STATE
+    // ═══════════════════════════════════════════
+
     let graphData = null;
-    let selectedNode = null;
-    let highlightSet = new Set();
+    let nodes = [];
+    let links = [];
+    let particles = [];
     let activeTypes = new Set(Object.keys(TYPE_COLORS));
 
-    // 3D state
-    let scene, camera, renderer, composer, controls;
-    let neuronObjects = [], axonObjects = [], impulseObjects = [], brainUniforms = [];
-    let hoverNeuron3d = null;
-    const clock = new THREE.Clock();
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+    let selectedNode = null;
+    let hoverNode = null;
+    let highlightSet = new Set();
+    let searchQuery = '';
 
-    // 2D state
-    let canvas2d, ctx2d, dpr;
-    let nodes2d = [], links2d = [];
-    let simAlpha = 1;
-    let pan2d = { x: 0, y: 0 }, zoom2d = 1;
-    let drag2d = null, isPanning2d = false, panStart2d = { x: 0, y: 0 };
+    // Canvas & viewport
+    const canvas = document.getElementById('graph');
+    const ctx = canvas.getContext('2d');
+    let W, H, dpr;
+    let panX = 0, panY = 0, zoom = 1;
+    let targetZoom = 1, targetPanX = 0, targetPanY = 0;
+    let smoothing = false;
+
+    // Interaction state
+    let isDragging = false;
+    let dragNode = null;
+    let dragStart = null;
+    let isPanning = false;
+    let panStart = null;
+    let spaceDown = false;
     let dragMoved = false;
-    let hover2d = null;
 
-    async function fetchGraphData() {
+    // Simulation
+    let simAlpha = 1;
+    let animFrame = null;
+
+    // ═══════════════════════════════════════════
+    //  DATA LOADING
+    // ═══════════════════════════════════════════
+
+    async function loadData() {
       const res = await fetch('/api/graph');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    }
-    function colorHex(c) { return '#' + c.toString(16).padStart(6, '0'); }
-    function gaussRandom(m, s) {
-      const u = 1 - Math.random(), v = Math.random();
-      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * s + m;
-    }
-    function linkId(l) {
-      return typeof l.source === 'object' ? l.source.id : l.source;
-    }
-    function linkTid(l) {
-      return typeof l.target === 'object' ? l.target.id : l.target;
-    }
+      graphData = await res.json();
 
-    // ═══════════════════════════════════════
-    //  3D: BRAIN MESH
-    // ═══════════════════════════════════════
-
-    const noise3D = createNoise3D();
-
-    function createBrainHemisphere(side) {
-      const phiStart = side > 0 ? 0 : Math.PI;
-      const geo = new THREE.SphereGeometry(BRAIN_RADIUS, 64, 48, phiStart, Math.PI);
-      const pos = geo.attributes.position, norm = geo.attributes.normal;
-      for (let i = 0; i < pos.count; i++) {
-        let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
-        const nx = norm.getX(i), ny = norm.getY(i), nz = norm.getZ(i);
-        y *= 0.78; z *= 1.15;
-        const d = (noise3D(x*0.45,y*0.45,z*0.45)*0.55 + noise3D(x*0.9,y*0.9,z*0.9)*0.25 + noise3D(x*1.8,y*1.8,z*1.8)*0.1) * BRAIN_RADIUS * 0.12;
-        x += nx*d + side*0.2; y += ny*d; z += nz*d;
-        pos.setXYZ(i, x, y, z);
-      }
-      geo.computeVertexNormals();
-      return geo;
-    }
-    function makeBrainShader() {
-      const u = { glowColor: { value: new THREE.Color(0x3377aa) }, time: { value: 0 } };
-      brainUniforms.push(u);
-      return new THREE.ShaderMaterial({
-        uniforms: u,
-        vertexShader: `varying vec3 vN,vV;void main(){vN=normalize(normalMatrix*normal);vec4 mv=modelViewMatrix*vec4(position,1.);vV=-mv.xyz;gl_Position=projectionMatrix*mv;}`,
-        fragmentShader: `uniform vec3 glowColor;uniform float time;varying vec3 vN,vV;void main(){float f=pow(1.-abs(dot(normalize(vV),vN)),3.5);float p=1.+sin(time*.5)*.04;gl_FragColor=vec4(glowColor*f*.7*p,f*.2+.005);}`,
-        transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending
-      });
-    }
-    function buildBrain() {
-      const g = new THREE.Group();
-      const sh = makeBrainShader();
-      const wi = new THREE.MeshBasicMaterial({ color: 0x225577, wireframe: true, transparent: true, opacity: 0.04, depthWrite: false });
-      for (const s of [-1,1]) { const geo = createBrainHemisphere(s); g.add(new THREE.Mesh(geo, sh)); g.add(new THREE.Mesh(geo.clone(), wi)); }
-      const cg = new THREE.SphereGeometry(1.8,32,24); const cp=cg.attributes.position, cn=cg.attributes.normal;
-      for (let i=0;i<cp.count;i++){let x=cp.getX(i),y=cp.getY(i),z=cp.getZ(i);const n=noise3D(x*1.5,y*1.5,z*1.5)*0.3;cp.setXYZ(i,x+cn.getX(i)*n,y+cn.getY(i)*n,z+cn.getZ(i)*n);}
-      cg.computeVertexNormals();
-      const cm=new THREE.Mesh(cg,makeBrainShader());cm.position.set(0,-2.8,-3.5);cm.scale.set(1.2,0.65,0.85);g.add(cm);
-      const cw=new THREE.Mesh(cg.clone(),wi.clone());cw.position.copy(cm.position);cw.scale.copy(cm.scale);g.add(cw);
-      const sm=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.3,2.5,8),makeBrainShader());sm.position.set(0,-4.2,-2);sm.rotation.x=0.3;g.add(sm);
-      return g;
-    }
-
-    // ═══════════════════════════════════════
-    //  3D: TEXT SPRITES
-    // ═══════════════════════════════════════
-
-    function createTextSprite(text, hexColor, size = 0.8, opacity = 0.85) {
-      const c = document.createElement('canvas'); const x = c.getContext('2d');
-      c.width = 512; c.height = 48; x.clearRect(0,0,512,48);
-      x.font = 'bold 28px Consolas,monospace'; x.textAlign = 'center'; x.textBaseline = 'middle';
-      x.fillStyle = hexColor; x.globalAlpha = opacity; x.fillText(text, 256, 26);
-      const t = new THREE.CanvasTexture(c); t.minFilter = THREE.LinearFilter;
-      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, sizeAttenuation: true }));
-      s.scale.set(size*512/48*0.15, size*0.15, 1); return s;
-    }
-    function createRegionLabel(text, pos, color) {
-      const s = createTextSprite(text.toUpperCase(), color, 1.8, 0.25);
-      s.position.copy(pos); return s;
-    }
-
-    // ═══════════════════════════════════════
-    //  3D: NEURONS
-    // ═══════════════════════════════════════
-
-    function placeNeuron3D(node, idx) {
-      const r = BRAIN_REGIONS[node.type] || BRAIN_REGIONS.decision;
-      let [cx,cy,cz] = r.center;
-      if (node.type==='pattern') cx = Math.abs(cx)*(idx%2===0?1:-1);
-      return new THREE.Vector3(gaussRandom(cx,r.spread*0.45), gaussRandom(cy,r.spread*0.35), gaussRandom(cz,r.spread*0.45));
-    }
-    function createNeuron3D(node, pos) {
-      const color = TYPE_COLORS[node.type]||0xffffff, op = STATUS_OPACITY[node.status]||0.8;
-      const sz = 0.13 + (node.connectionCount||0)*0.025;
-      const g = new THREE.Group(); g.position.copy(pos); g.userData.nodeId = node.id;
-      const coreMat = new THREE.MeshBasicMaterial({color,transparent:true,opacity:op});
-      g.add(new THREE.Mesh(new THREE.SphereGeometry(sz,14,10), coreMat));
-      const glowMat = new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.08,depthWrite:false,blending:THREE.AdditiveBlending});
-      g.add(new THREE.Mesh(new THREE.SphereGeometry(sz*2.2,8,6), glowMat));
-      const label = createTextSprite(TYPE_LABELS[node.type]+'-'+node.id.split('-').pop(), colorHex(color), 0.7, 0.75);
-      label.position.set(0, sz*3+0.15, 0); g.add(label);
-      neuronObjects.push({ mesh:g, node, coreMat, glowMat, label, pos });
-      return g;
-    }
-
-    // ═══════════════════════════════════════
-    //  3D: AXONS & IMPULSES
-    // ═══════════════════════════════════════
-
-    function makeAxonCurve(a,b) {
-      const mid = new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);
-      mid.add(mid.clone().normalize().multiplyScalar(a.distanceTo(b)*0.3+0.4));
-      const cp1 = new THREE.Vector3().lerpVectors(a,mid,0.4), cp2 = new THREE.Vector3().lerpVectors(mid,b,0.6);
-      const j=0.3;
-      cp1.x+=(Math.random()-0.5)*j;cp1.y+=(Math.random()-0.5)*j;cp1.z+=(Math.random()-0.5)*j;
-      cp2.x+=(Math.random()-0.5)*j;cp2.y+=(Math.random()-0.5)*j;cp2.z+=(Math.random()-0.5)*j;
-      return new THREE.CubicBezierCurve3(a.clone(),cp1,cp2,b.clone());
-    }
-    function buildConnections3D(data, posMap) {
-      const g = new THREE.Group();
-      for (const link of data.links) {
-        const sp=posMap.get(linkId(link)),tp=posMap.get(linkTid(link)); if(!sp||!tp) continue;
-        const curve=makeAxonCurve(sp,tp), color=REL_COLORS[link.relType]||0x667799;
-        const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,24,0.012,3,false),
-          new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.18,depthWrite:false,blending:THREE.AdditiveBlending}));
-        g.add(mesh); axonObjects.push({mesh,link});
-        const imp=new THREE.Mesh(new THREE.SphereGeometry(0.035,5,3),
-          new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending}));
-        g.add(imp); impulseObjects.push({mesh:imp,curve,t:Math.random(),speed:REL_SPEED[link.relType]||0.12});
-      }
-      return g;
-    }
-
-    // ═══════════════════════════════════════
-    //  3D: POST-PROCESSING & STARFIELD
-    // ═══════════════════════════════════════
-
-    function setupPostProcessing() {
-      composer = new EffectComposer(renderer);
-      composer.addPass(new RenderPass(scene, camera));
-      const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.45, 0.5, 0.25);
-      composer.addPass(bloom);
-      composer.addPass(new ShaderPass({
-        uniforms:{tDiffuse:{value:null}},
-        vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
-        fragmentShader:`uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec3 c=texture2D(tDiffuse,vUv).rgb;c*=mix(.35,1.,1.-smoothstep(.4,1.,length(vUv-.5)));gl_FragColor=vec4(c,1.);}`
+      nodes = graphData.nodes.map((n, i) => ({
+        ...n,
+        x: (Math.random() - 0.5) * 400,
+        y: (Math.random() - 0.5) * 400,
+        vx: 0, vy: 0,
+        radius: Math.min(NODE_MAX_RADIUS, NODE_BASE_RADIUS + (n.connectionCount || 0) * NODE_CONN_SCALE),
+        opacity: STATUS_OPACITY[n.status] || 0.8,
+        pinned: false
       }));
-      composer.addPass(new OutputPass());
-      return bloom;
-    }
-    function createStarfield() {
-      const n=500, pos=new Float32Array(n*3);
-      for(let i=0;i<n*3;i++) pos[i]=(Math.random()-0.5)*200;
-      const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
-      return new THREE.Points(geo, new THREE.PointsMaterial({color:0x223344,size:0.2,transparent:true,opacity:0.5,sizeAttenuation:true}));
-    }
 
-    // ═══════════════════════════════════════
-    //  3D: RAYCASTING
-    // ═══════════════════════════════════════
+      const nodeMap = new Map(nodes.map(n => [n.id, n]));
 
-    function findNeuronAt3D(e) {
-      mouse.x=(e.clientX/window.innerWidth)*2-1; mouse.y=-(e.clientY/window.innerHeight)*2+1;
-      raycaster.setFromCamera(mouse, camera);
-      const hits = raycaster.intersectObjects(neuronObjects.filter(n=>activeTypes.has(n.node.type)).map(n=>n.mesh), true);
-      if(!hits.length) return null;
-      let obj=hits[0].object; while(obj&&!obj.userData.nodeId) obj=obj.parent;
-      return obj ? neuronObjects.find(n=>n.mesh===obj) : null;
-    }
-    function applyHighlight3D() {
-      const has = highlightSet.size > 0;
-      for (const n of neuronObjects) {
-        if (!activeTypes.has(n.node.type)) { n.mesh.visible=false; continue; }
-        n.mesh.visible=true;
-        const lit = !has || highlightSet.has(n.node.id);
-        n.coreMat.opacity = lit ? (has ? 1 : STATUS_OPACITY[n.node.status]||0.8) : 0.05;
-        n.glowMat.opacity = lit ? (has ? 0.15 : 0.08) : 0.005;
-        n.label.material.opacity = lit ? (has ? 1 : 0.85) : 0.08;
+      links = graphData.links.map(l => ({
+        source: nodeMap.get(l.source),
+        target: nodeMap.get(l.target),
+        relType: l.relType
+      })).filter(l => l.source && l.target);
+
+      // Create particles along links
+      particles = [];
+      for (const link of links) {
+        for (let i = 0; i < PARTICLE_COUNT_PER_LINK; i++) {
+          particles.push({
+            link,
+            t: Math.random(),
+            speed: PARTICLE_SPEED + Math.random() * 0.002
+          });
+        }
       }
-      for (const a of axonObjects) {
-        if (!has) { a.mesh.material.opacity = 0.18; continue; }
-        const lit = highlightSet.has(linkId(a.link)) && highlightSet.has(linkTid(a.link));
-        a.mesh.material.opacity = lit ? 0.4 : 0.02;
-      }
-    }
-    function onPointerMove3D(e) {
-      const n = findNeuronAt3D(e);
-      renderer.domElement.style.cursor = n ? 'pointer' : 'default';
-      if (n !== hoverNeuron3d) {
-        hoverNeuron3d = n;
-        setHighlightFromNeuron(n ? n.node : null);
-        showTooltip(n ? n.node : null, e);
-      }
-      if (hoverNeuron3d) { const el=document.getElementById('node-tooltip'); el.style.left=(e.clientX+14)+'px'; el.style.top=(e.clientY+14)+'px'; }
-    }
-    function onClick3D(e) {
-      const n = findNeuronAt3D(e);
-      if (n) { selectedNode = n.node; showDetail(n.node); }
-      else { selectedNode = null; document.getElementById('detail-panel').classList.remove('visible'); }
-    }
-    function onDblClick3D(e) {
-      const n = findNeuronAt3D(e); if(!n) return;
-      controls.autoRotate = false;
-      animateCamera(n.pos.clone());
-    }
-    function animateCamera(target) {
-      const dest = target.clone().add(target.clone().normalize().multiplyScalar(3.5));
-      const sP=camera.position.clone(), sT=controls.target.clone(); let p=0;
-      (function go(){p+=0.035;if(p>=1){camera.position.copy(dest);controls.target.copy(target);controls.update();return;}
-      const t=1-Math.pow(1-p,3);camera.position.lerpVectors(sP,dest,t);controls.target.lerpVectors(sT,target,t);controls.update();requestAnimationFrame(go);})();
-    }
 
-    // ═══════════════════════════════════════
-    //  2D: FORCE SIMULATION
-    // ═══════════════════════════════════════
-
-    function init2D() {
-      canvas2d = document.getElementById('canvas-2d');
-      ctx2d = canvas2d.getContext('2d');
-      dpr = Math.min(window.devicePixelRatio, 2);
-      resize2D();
-
-      nodes2d = graphData.nodes.map(n => {
-        const angle = TYPE_ANGLES_2D[n.type] || 0;
-        const dist = 120 + Math.random() * 60;
-        return {
-          ...n,
-          x: Math.cos(angle) * dist + gaussRandom(0, 40),
-          y: Math.sin(angle) * dist + gaussRandom(0, 40),
-          vx: 0, vy: 0,
-          r: 7 + (n.connectionCount || 0) * 2.5
-        };
-      });
-      links2d = graphData.links.map(l => ({ ...l }));
+      buildUI();
       simAlpha = 1;
     }
 
-    function resize2D() {
-      if (!canvas2d) return;
-      canvas2d.width = window.innerWidth * dpr;
-      canvas2d.height = window.innerHeight * dpr;
-      canvas2d.style.width = window.innerWidth + 'px';
-      canvas2d.style.height = window.innerHeight + 'px';
-    }
+    // ═══════════════════════════════════════════
+    //  FORCE SIMULATION
+    // ═══════════════════════════════════════════
 
-    function simulate2D() {
-      if (simAlpha < 0.001) return;
-      simAlpha *= 0.997;
-      const a = simAlpha;
+    function simulate() {
+      if (simAlpha < MIN_ALPHA) return;
 
-      // Repulsion
-      for (let i = 0; i < nodes2d.length; i++) {
-        for (let j = i + 1; j < nodes2d.length; j++) {
-          let dx = nodes2d[j].x - nodes2d[i].x, dy = nodes2d[j].y - nodes2d[i].y;
-          let d2 = dx*dx + dy*dy || 1;
-          let f = 600 * a / d2;
-          let fx = (dx / Math.sqrt(d2)) * f, fy = (dy / Math.sqrt(d2)) * f;
-          nodes2d[i].vx -= fx; nodes2d[i].vy -= fy;
-          nodes2d[j].vx += fx; nodes2d[j].vy += fy;
+      const visible = nodes.filter(n => activeTypes.has(n.type));
+      const N = visible.length;
+
+      // Repulsion (Barnes-Hut would be better for 500+ but direct is fine for <1000)
+      for (let i = 0; i < N; i++) {
+        for (let j = i + 1; j < N; j++) {
+          const a = visible[i], b = visible[j];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d2 = dx * dx + dy * dy;
+          if (d2 < 1) d2 = 1;
+          const d = Math.sqrt(d2);
+          const f = REPULSION / d2 * simAlpha;
+          const fx = (dx / d) * f, fy = (dy / d) * f;
+          if (!a.pinned) { a.vx -= fx; a.vy -= fy; }
+          if (!b.pinned) { b.vx += fx; b.vy += fy; }
         }
       }
-      // Springs
-      for (const l of links2d) {
-        const s = nodes2d.find(n => n.id === linkId(l)), t = nodes2d.find(n => n.id === linkTid(l));
-        if (!s || !t) continue;
-        let dx = t.x - s.x, dy = t.y - s.y;
-        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        let f = (dist - 90) * 0.03 * a;
-        let fx = (dx/dist)*f, fy = (dy/dist)*f;
-        s.vx += fx; s.vy += fy; t.vx -= fx; t.vy -= fy;
+
+      // Link attraction
+      for (const link of links) {
+        if (!activeTypes.has(link.source.type) || !activeTypes.has(link.target.type)) continue;
+        const dx = link.target.x - link.source.x;
+        const dy = link.target.y - link.source.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+        const f = (d - LINK_DISTANCE) * LINK_STRENGTH * simAlpha;
+        const fx = (dx / d) * f, fy = (dy / d) * f;
+        if (!link.source.pinned) { link.source.vx += fx; link.source.vy += fy; }
+        if (!link.target.pinned) { link.target.vx -= fx; link.target.vy -= fy; }
       }
+
       // Center gravity
-      for (const n of nodes2d) { n.vx -= n.x * 0.008 * a; n.vy -= n.y * 0.008 * a; }
-      // Type clustering
-      const centers = {}, counts = {};
-      for (const n of nodes2d) {
-        if (!centers[n.type]) { centers[n.type] = {x:0,y:0}; counts[n.type] = 0; }
-        centers[n.type].x += n.x; centers[n.type].y += n.y; counts[n.type]++;
+      for (const n of visible) {
+        if (n.pinned) continue;
+        n.vx -= n.x * CENTER_GRAVITY * simAlpha;
+        n.vy -= n.y * CENTER_GRAVITY * simAlpha;
       }
-      for (const t of Object.keys(centers)) { centers[t].x /= counts[t]; centers[t].y /= counts[t]; }
-      for (const n of nodes2d) {
-        if (!centers[n.type]) continue;
-        n.vx += (centers[n.type].x - n.x) * 0.008 * a;
-        n.vy += (centers[n.type].y - n.y) * 0.008 * a;
-      }
+
       // Integrate
-      for (const n of nodes2d) {
-        if (drag2d && n.id === drag2d.id) continue;
-        n.vx *= 0.88; n.vy *= 0.88;
-        n.x += n.vx; n.y += n.vy;
+      for (const n of visible) {
+        if (n.pinned) continue;
+        n.vx *= DAMPING;
+        n.vy *= DAMPING;
+        // Clamp velocity
+        const v = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
+        if (v > VELOCITY_LIMIT) { n.vx = (n.vx / v) * VELOCITY_LIMIT; n.vy = (n.vy / v) * VELOCITY_LIMIT; }
+        n.x += n.vx;
+        n.y += n.vy;
+      }
+
+      simAlpha *= 0.997;
+    }
+
+    // ═══════════════════════════════════════════
+    //  RENDERING
+    // ═══════════════════════════════════════════
+
+    function worldToScreen(x, y) {
+      return [(x - panX) * zoom + W / 2, (y - panY) * zoom + H / 2];
+    }
+    function screenToWorld(sx, sy) {
+      return [(sx - W / 2) / zoom + panX, (sy - H / 2) / zoom + panY];
+    }
+
+    let _time = 0;
+
+    function render() {
+      _time += 0.016;
+
+      // Smooth viewport transitions
+      if (smoothing) {
+        panX += (targetPanX - panX) * 0.08;
+        panY += (targetPanY - panY) * 0.08;
+        zoom += (targetZoom - zoom) * 0.08;
+        if (Math.abs(panX - targetPanX) < 0.5 && Math.abs(panY - targetPanY) < 0.5 && Math.abs(zoom - targetZoom) < 0.001) {
+          panX = targetPanX; panY = targetPanY; zoom = targetZoom;
+          smoothing = false;
+        }
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+
+      const hasHighlight = highlightSet.size > 0;
+
+      // ── Draw links ──
+      for (const link of links) {
+        if (!activeTypes.has(link.source.type) || !activeTypes.has(link.target.type)) continue;
+        const [x1, y1] = worldToScreen(link.source.x, link.source.y);
+        const [x2, y2] = worldToScreen(link.target.x, link.target.y);
+
+        // Culling
+        if (x1 < -100 && x2 < -100) continue;
+        if (x1 > W + 100 && x2 > W + 100) continue;
+        if (y1 < -100 && y2 < -100) continue;
+        if (y1 > H + 100 && y2 > H + 100) continue;
+
+        const style = REL_STYLES[link.relType] || REL_STYLES.relates_to;
+        const highlighted = hasHighlight && highlightSet.has(link.source.id) && highlightSet.has(link.target.id);
+        const dimmed = hasHighlight && !highlighted;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = style.color;
+        ctx.globalAlpha = dimmed ? 0.03 : (highlighted ? 0.5 : 0.12);
+        ctx.lineWidth = style.width * (highlighted ? 1.5 : 1) * zoom;
+        if (style.dash) { ctx.setLineDash(style.dash.map(d => d * zoom)); } else { ctx.setLineDash([]); }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+
+      // ── Draw particles ──
+      for (const p of particles) {
+        if (!activeTypes.has(p.link.source.type) || !activeTypes.has(p.link.target.type)) continue;
+        if (hasHighlight && !(highlightSet.has(p.link.source.id) && highlightSet.has(p.link.target.id))) continue;
+        p.t = (p.t + p.speed) % 1;
+        const x = p.link.source.x + (p.link.target.x - p.link.source.x) * p.t;
+        const y = p.link.source.y + (p.link.target.y - p.link.source.y) * p.t;
+        const [sx, sy] = worldToScreen(x, y);
+        if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) continue;
+
+        const style = REL_STYLES[p.link.relType] || REL_STYLES.relates_to;
+        const sz = 1.5 * zoom;
+        ctx.beginPath();
+        ctx.arc(sx, sy, sz, 0, Math.PI * 2);
+        ctx.fillStyle = style.color;
+        ctx.globalAlpha = 0.6;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // ── Draw nodes ──
+      const sortedNodes = [...nodes].sort((a, b) => {
+        // Draw selected/hovered last (on top)
+        if (a === selectedNode || a === hoverNode) return 1;
+        if (b === selectedNode || b === hoverNode) return -1;
+        return 0;
+      });
+
+      for (const node of sortedNodes) {
+        if (!activeTypes.has(node.type)) continue;
+        const [sx, sy] = worldToScreen(node.x, node.y);
+        if (sx < -50 || sx > W + 50 || sy < -50 || sy > H + 50) continue;
+
+        const r = node.radius * zoom;
+        const color = TYPE_COLORS[node.type] || '#ffffff';
+        const isSelected = node === selectedNode;
+        const isHovered = node === hoverNode;
+        const isHighlighted = !hasHighlight || highlightSet.has(node.id);
+        const isSearchMatch = searchQuery && node.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+        let alpha = node.opacity;
+        if (hasHighlight && !isHighlighted) alpha = 0.06;
+        if (isSearchMatch && searchQuery) alpha = 1;
+
+        // Stale ring
+        if (node.isStale && isHighlighted) {
+          ctx.beginPath();
+          ctx.arc(sx, sy, r + STALE_RING_EXTRA * zoom, 0, Math.PI * 2);
+          ctx.strokeStyle = '#f0b020';
+          ctx.globalAlpha = 0.15 + Math.sin(_time * 2) * 0.08;
+          ctx.lineWidth = 1.5 * zoom;
+          ctx.setLineDash([3 * zoom, 3 * zoom]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+        }
+
+        // Outer glow
+        if ((isSelected || isHovered) && isHighlighted) {
+          const gradient = ctx.createRadialGradient(sx, sy, r * 0.5, sx, sy, r * 3.5);
+          gradient.addColorStop(0, color);
+          gradient.addColorStop(1, 'transparent');
+          ctx.beginPath();
+          ctx.arc(sx, sy, r * 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = gradient;
+          ctx.globalAlpha = isSelected ? 0.15 : 0.08;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        // Node body
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = alpha;
+        ctx.fill();
+
+        // Selection ring
+        if (isSelected) {
+          ctx.beginPath();
+          ctx.arc(sx, sy, r + 3 * zoom, 0, Math.PI * 2);
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = 0.7;
+          ctx.lineWidth = 1.5 * zoom;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
+        // Breathing pulse for active nodes
+        if (node.status === 'active' || node.status === 'current' || node.status === 'open') {
+          const pulse = Math.sin(_time * 1.5 + node.x * 0.01) * 0.5 + 0.5;
+          ctx.beginPath();
+          ctx.arc(sx, sy, r + pulse * 2 * zoom, 0, Math.PI * 2);
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = 0.04 * alpha;
+          ctx.lineWidth = 1 * zoom;
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+
+        // Label
+        if (zoom > 0.4 && isHighlighted) {
+          const fontSize = Math.max(8, LABEL_FONT_SIZE * zoom);
+          ctx.font = `500 ${fontSize}px 'JetBrains Mono', monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillStyle = color;
+          ctx.globalAlpha = alpha * (isSelected || isHovered ? 1 : 0.7);
+          ctx.fillText(node.id, sx, sy + r + 4 * zoom);
+          ctx.globalAlpha = 1;
+
+          // Title (only when zoomed in enough or hovered)
+          if ((zoom > 1.0 || isHovered || isSelected) && isHighlighted) {
+            const titleSize = Math.max(7, 9 * zoom);
+            ctx.font = `300 ${titleSize}px 'Outfit', sans-serif`;
+            ctx.fillStyle = '#c0cee0';
+            ctx.globalAlpha = alpha * 0.6;
+            const maxW = 140 * zoom;
+            let title = node.name;
+            if (ctx.measureText(title).width > maxW) {
+              while (title.length > 3 && ctx.measureText(title + '...').width > maxW) title = title.slice(0, -1);
+              title += '...';
+            }
+            ctx.fillText(title, sx, sy + r + 4 * zoom + fontSize + 2);
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        // Connection count badge
+        if (zoom > 0.6 && node.connectionCount > 1 && isHighlighted) {
+          const badgeR = Math.max(5, 7 * zoom);
+          const bx = sx + r * 0.7, by = sy - r * 0.7;
+          ctx.beginPath();
+          ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
+          ctx.fillStyle = '#0b0f19';
+          ctx.globalAlpha = alpha * 0.9;
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = alpha * 0.4;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.font = `600 ${Math.max(7, 8 * zoom)}px 'JetBrains Mono', monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = color;
+          ctx.globalAlpha = alpha * 0.8;
+          ctx.fillText(String(node.connectionCount), bx, by);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // ── Cluster labels ──
+      if (zoom < 1.5 && !hasHighlight) {
+        const clusters = {};
+        for (const n of nodes) {
+          if (!activeTypes.has(n.type)) continue;
+          if (!clusters[n.type]) clusters[n.type] = { sx: 0, sy: 0, count: 0 };
+          clusters[n.type].sx += n.x;
+          clusters[n.type].sy += n.y;
+          clusters[n.type].count++;
+        }
+        for (const [type, c] of Object.entries(clusters)) {
+          if (c.count < 2) continue;
+          const cx = c.sx / c.count, cy = c.sy / c.count;
+          const [sx, sy] = worldToScreen(cx, cy - 40 / zoom);
+          ctx.font = `600 ${Math.max(8, 10 * zoom)}px 'JetBrains Mono', monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = TYPE_COLORS[type];
+          ctx.globalAlpha = 0.1;
+          ctx.fillText(TYPE_LABELS[type].toUpperCase(), sx, sy);
+          ctx.globalAlpha = 1;
+        }
       }
     }
 
-    function render2D() {
-      const w = canvas2d.width / dpr, h = canvas2d.height / dpr;
-      ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx2d.clearRect(0, 0, w, h);
-      ctx2d.save();
-      ctx2d.translate(w/2 + pan2d.x, h/2 + pan2d.y);
-      ctx2d.scale(zoom2d, zoom2d);
+    // ═══════════════════════════════════════════
+    //  MINIMAP
+    // ═══════════════════════════════════════════
 
-      const has = highlightSet.size > 0;
+    const minimapCanvas = document.getElementById('minimap-canvas');
+    const mctx = minimapCanvas.getContext('2d');
+
+    function renderMinimap() {
+      const el = document.getElementById('minimap');
+      const mW = el.clientWidth, mH = el.clientHeight;
+      const mdpr = window.devicePixelRatio || 1;
+      minimapCanvas.width = mW * mdpr;
+      minimapCanvas.height = mH * mdpr;
+      mctx.setTransform(mdpr, 0, 0, mdpr, 0, 0);
+      mctx.clearRect(0, 0, mW, mH);
+
+      if (!nodes.length) return;
+
+      // Find bounds
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const n of nodes) {
+        if (!activeTypes.has(n.type)) continue;
+        if (n.x < minX) minX = n.x;
+        if (n.x > maxX) maxX = n.x;
+        if (n.y < minY) minY = n.y;
+        if (n.y > maxY) maxY = n.y;
+      }
+
+      const pad = 40;
+      minX -= pad; maxX += pad; minY -= pad; maxY += pad;
+      const rangeX = maxX - minX || 1, rangeY = maxY - minY || 1;
+      const scale = Math.min(mW / rangeX, mH / rangeY);
+      const ox = (mW - rangeX * scale) / 2, oy = (mH - rangeY * scale) / 2;
+
+      const mx = (x) => (x - minX) * scale + ox;
+      const my = (y) => (y - minY) * scale + oy;
 
       // Links
-      for (const l of links2d) {
-        const s = nodes2d.find(n => n.id === linkId(l)), t = nodes2d.find(n => n.id === linkTid(l));
-        if (!s || !t || !activeTypes.has(s.type) || !activeTypes.has(t.type)) continue;
-        const lit = !has || (highlightSet.has(s.id) && highlightSet.has(t.id));
-        ctx2d.strokeStyle = colorHex(REL_COLORS[l.relType] || 0x667799);
-        ctx2d.globalAlpha = lit ? (has ? 0.55 : 0.2) : 0.04;
-        ctx2d.lineWidth = lit && has ? 1.5 : 0.8;
-        ctx2d.beginPath(); ctx2d.moveTo(s.x, s.y); ctx2d.lineTo(t.x, t.y); ctx2d.stroke();
-        if (lit && has) {
-          ctx2d.globalAlpha = 0.4; ctx2d.fillStyle = colorHex(REL_COLORS[l.relType]||0x667799);
-          ctx2d.font = '8px Consolas'; ctx2d.textAlign = 'center';
-          ctx2d.fillText(l.relType, (s.x+t.x)/2, (s.y+t.y)/2 - 4);
-        }
+      mctx.globalAlpha = 0.08;
+      mctx.strokeStyle = '#4a5a74';
+      mctx.lineWidth = 0.5;
+      for (const link of links) {
+        if (!activeTypes.has(link.source.type) || !activeTypes.has(link.target.type)) continue;
+        mctx.beginPath();
+        mctx.moveTo(mx(link.source.x), my(link.source.y));
+        mctx.lineTo(mx(link.target.x), my(link.target.y));
+        mctx.stroke();
       }
 
       // Nodes
-      for (const n of nodes2d) {
+      for (const n of nodes) {
         if (!activeTypes.has(n.type)) continue;
-        const lit = !has || highlightSet.has(n.id);
-        const color = colorHex(TYPE_COLORS[n.type] || 0xffffff);
+        mctx.beginPath();
+        mctx.arc(mx(n.x), my(n.y), Math.max(1.5, n.radius * scale * 0.4), 0, Math.PI * 2);
+        mctx.fillStyle = TYPE_COLORS[n.type];
+        mctx.globalAlpha = n === selectedNode ? 1 : 0.5;
+        mctx.fill();
+      }
+      mctx.globalAlpha = 1;
 
-        // Glow
-        ctx2d.globalAlpha = lit ? 0.15 : 0.02;
-        ctx2d.fillStyle = color;
-        ctx2d.beginPath(); ctx2d.arc(n.x, n.y, n.r * 2, 0, Math.PI*2); ctx2d.fill();
+      // Viewport rectangle
+      const tl = screenToWorld(0, 60);
+      const br = screenToWorld(W, H - 60);
+      const vx = mx(tl[0]), vy = my(tl[1]);
+      const vw = (br[0] - tl[0]) * scale, vh = (br[1] - tl[1]) * scale;
+      mctx.strokeStyle = 'rgba(61,142,207,0.5)';
+      mctx.lineWidth = 1;
+      mctx.strokeRect(vx, vy, vw, vh);
+      mctx.fillStyle = 'rgba(61,142,207,0.04)';
+      mctx.fillRect(vx, vy, vw, vh);
+    }
 
-        // Node circle
-        ctx2d.globalAlpha = lit ? (has ? 0.95 : STATUS_OPACITY[n.status]||0.8) : 0.08;
-        ctx2d.fillStyle = color;
-        ctx2d.beginPath(); ctx2d.arc(n.x, n.y, n.r, 0, Math.PI*2); ctx2d.fill();
+    // ═══════════════════════════════════════════
+    //  UI BUILDERS
+    // ═══════════════════════════════════════════
 
-        // Border
-        ctx2d.strokeStyle = color;
-        ctx2d.globalAlpha = lit ? 0.4 : 0.04;
-        ctx2d.lineWidth = 1;
-        ctx2d.beginPath(); ctx2d.arc(n.x, n.y, n.r + 1, 0, Math.PI*2); ctx2d.stroke();
+    function buildUI() {
+      buildFilters();
+      buildStats();
+      buildTimeline();
+    }
 
-        // ID label
-        ctx2d.globalAlpha = lit ? 0.9 : 0.07;
-        ctx2d.fillStyle = '#c8d4e8';
-        ctx2d.font = 'bold 10px Consolas'; ctx2d.textAlign = 'center';
-        ctx2d.fillText(n.id, n.x, n.y - n.r - 5);
+    function buildFilters() {
+      const el = document.getElementById('filters');
+      el.innerHTML = '';
+      const counts = {};
+      for (const n of nodes) counts[n.type] = (counts[n.type] || 0) + 1;
 
-        // Name
-        ctx2d.globalAlpha = lit ? 0.45 : 0.04;
-        ctx2d.font = '9px Consolas';
-        const name = n.name.length > 35 ? n.name.substring(0, 33) + '\u2026' : n.name;
-        ctx2d.fillText(name, n.x, n.y + n.r + 12);
+      for (const [type, label] of Object.entries(TYPE_LABELS)) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn active';
+        btn.dataset.type = type;
+        btn.innerHTML = `<span class="dot" style="background:${TYPE_COLORS[type]}"></span>${TYPE_SHORT[type]}<span class="count">${counts[type] || 0}</span>`;
+        btn.addEventListener('click', () => {
+          if (activeTypes.has(type)) { activeTypes.delete(type); btn.classList.remove('active'); }
+          else { activeTypes.add(type); btn.classList.add('active'); }
+          simAlpha = Math.max(simAlpha, 0.3);
+        });
+        el.appendChild(btn);
+      }
+    }
+
+    function buildStats() {
+      const el = document.getElementById('stats');
+      const total = nodes.length;
+      const linked = links.length;
+      const stale = nodes.filter(n => n.isStale).length;
+      const health = total > 0 ? Math.round((1 - stale / total) * 100) : 100;
+      const healthColor = health > 80 ? '#00d68f' : health > 50 ? '#f0b020' : '#f04060';
+
+      el.innerHTML = `
+        <div class="st-title">${graphData.project || 'Brain'}</div>
+        <div class="st-row"><span class="st-label">Entries</span><span class="st-val">${total}</span></div>
+        <div class="st-row"><span class="st-label">Links</span><span class="st-val">${linked}</span></div>
+        <div class="st-row"><span class="st-label">Stale</span><span class="st-val" style="color:${stale > 0 ? '#f0b020' : 'var(--text-dim)'}">${stale}</span></div>
+        <div class="st-health">
+          <div class="st-row"><span class="st-label">Health</span><span class="st-val" style="color:${healthColor}">${health}%</span></div>
+          <div class="st-bar-track"><div class="st-bar" style="width:${health}%;background:${healthColor}"></div></div>
+        </div>
+      `;
+    }
+
+    function buildTimeline() {
+      const el = document.getElementById('timeline');
+      if (!nodes.length) { el.style.display = 'none'; return; }
+
+      const dates = nodes.filter(n => n.date).map(n => new Date(n.date).getTime());
+      if (!dates.length) { el.style.display = 'none'; return; }
+
+      const minDate = Math.min(...dates), maxDate = Math.max(...dates);
+      const range = maxDate - minDate || 1;
+
+      let dotsHtml = '';
+      for (const n of nodes) {
+        if (!n.date) continue;
+        const t = new Date(n.date).getTime();
+        const pct = ((t - minDate) / range) * 100;
+        dotsHtml += `<div class="tl-dot" data-id="${n.id}" style="left:${pct}%;background:${TYPE_COLORS[n.type]};opacity:${n.opacity}" title="${n.id}: ${n.name}"></div>`;
       }
 
-      ctx2d.restore();
-      ctx2d.globalAlpha = 1;
-    }
+      const fmt = (ts) => new Date(ts).toISOString().split('T')[0];
+      el.innerHTML = `
+        <div class="tl-header">
+          <span class="tl-label">Timeline</span>
+          <span class="tl-range">${fmt(minDate)} — ${fmt(maxDate)}</span>
+        </div>
+        <div class="tl-track">
+          <div class="tl-line"></div>
+          ${dotsHtml}
+        </div>
+      `;
 
-    // 2D interaction
-    function screenToWorld2D(sx, sy) {
-      const w = window.innerWidth, h = window.innerHeight;
-      return { x: (sx - w/2 - pan2d.x) / zoom2d, y: (sy - h/2 - pan2d.y) / zoom2d };
-    }
-    function findNodeAt2D(sx, sy) {
-      const { x, y } = screenToWorld2D(sx, sy);
-      for (let i = nodes2d.length - 1; i >= 0; i--) {
-        const n = nodes2d[i];
-        if (!activeTypes.has(n.type)) continue;
-        if ((x-n.x)**2 + (y-n.y)**2 < (n.r*1.3)**2) return n;
-      }
-      return null;
-    }
-    function setup2DEvents() {
-      const c = canvas2d;
-      c.addEventListener('pointermove', e => {
-        if (drag2d) {
-          dragMoved = true;
-          const p = screenToWorld2D(e.clientX, e.clientY);
-          drag2d.x = p.x; drag2d.y = p.y; drag2d.vx = 0; drag2d.vy = 0;
-          simAlpha = Math.max(simAlpha, 0.05);
-          return;
-        }
-        if (isPanning2d) {
-          pan2d.x += e.clientX - panStart2d.x; pan2d.y += e.clientY - panStart2d.y;
-          panStart2d = { x: e.clientX, y: e.clientY }; return;
-        }
-        const n = findNodeAt2D(e.clientX, e.clientY);
-        c.style.cursor = n ? 'pointer' : 'grab';
-        if (n !== hover2d) {
-          hover2d = n;
-          const gn = n ? graphData.nodes.find(x => x.id === n.id) : null;
-          setHighlightFromNeuron(gn);
-          showTooltip(gn, e);
-        }
-        if (hover2d) { const el=document.getElementById('node-tooltip'); el.style.left=(e.clientX+14)+'px';el.style.top=(e.clientY+14)+'px'; }
+      // Timeline dot clicks
+      el.querySelectorAll('.tl-dot').forEach(dot => {
+        dot.addEventListener('click', () => {
+          const node = nodes.find(n => n.id === dot.dataset.id);
+          if (node) { selectNode(node); focusNode(node); }
+        });
       });
-      c.addEventListener('pointerdown', e => {
-        const n = findNodeAt2D(e.clientX, e.clientY);
-        dragMoved = false;
-        if (n) { drag2d = n; c.style.cursor = 'grabbing'; }
-        else { isPanning2d = true; panStart2d = { x: e.clientX, y: e.clientY }; c.style.cursor = 'grabbing'; }
-      });
-      c.addEventListener('pointerup', e => {
-        if (drag2d && !dragMoved) {
-          const gn = graphData.nodes.find(x => x.id === drag2d.id);
-          if (gn) { selectedNode = gn; showDetail(gn); }
-        }
-        if (!drag2d && !isPanning2d) {
-          selectedNode = null; document.getElementById('detail-panel').classList.remove('visible');
-        }
-        drag2d = null; isPanning2d = false; c.style.cursor = 'grab';
-      });
-      c.addEventListener('wheel', e => {
-        e.preventDefault();
-        const f = e.deltaY > 0 ? 0.92 : 1.08;
-        zoom2d = Math.max(0.15, Math.min(5, zoom2d * f));
-      }, { passive: false });
-    }
-
-    // ═══════════════════════════════════════
-    //  SHARED: HIGHLIGHT & HUD
-    // ═══════════════════════════════════════
-
-    function setHighlightFromNeuron(node) {
-      highlightSet.clear();
-      if (node) {
-        highlightSet.add(node.id);
-        for (const l of graphData.links) {
-          const s = linkId(l), t = linkTid(l);
-          if (s === node.id) highlightSet.add(t);
-          if (t === node.id) highlightSet.add(s);
-        }
-      }
-      if (currentView === '3d') applyHighlight3D();
-    }
-
-    function showTooltip(node, e) {
-      const el = document.getElementById('node-tooltip');
-      if (!node) { el.style.opacity = '0'; return; }
-      const c = colorHex(TYPE_COLORS[node.type]||0xffffff);
-      const stale = node.isStale ? ` <span style="color:#cc6600">${node.daysSinceReview}d stale</span>` : '';
-      el.innerHTML = `<div style="color:${c};font-size:10px;letter-spacing:0.5px">${TYPE_LABELS[node.type]} : ${node.id}</div>
-        <div style="margin-top:3px">${node.name}</div>
-        <div style="color:var(--text-secondary);margin-top:3px;font-size:10px">${node.status} \u2022 ${node.connectionCount} conn${stale}</div>`;
-      el.style.opacity = '1';
-    }
-
-    function updateHud(data) {
-      const el = document.getElementById('hud-stats');
-      const total = data.nodes.length, links = data.links.length;
-      const stale = data.nodes.filter(n => n.isStale).length;
-      const health = total > 0 ? Math.round(((total - stale) / total) * 100) : 100;
-      const byType = {};
-      for (const n of data.nodes) byType[n.type] = (byType[n.type]||0)+1;
-      const typeHtml = Object.entries(byType).map(([t,c])=>
-        `<span style="color:${colorHex(TYPE_COLORS[t]||0xffffff)}">${TYPE_LABELS[t]} ${c}</span>`
-      ).join(' &nbsp; ');
-      const bc = health>=80?'#00cc77':health>=50?'#ddaa00':'#dd3344';
-      el.innerHTML = `<div class="title">Neural Cortex</div>
-        <div class="row"><span class="big">${total}</span><span class="sub">neurons</span></div>
-        <div class="row"><span class="sub">${links} synapses</span></div>
-        <div class="types">${typeHtml}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${health}%;background:${bc}"></div></div>
-        <div class="health" style="color:${bc}">Health ${health}%${stale?' \u2014 '+stale+' stale':''}</div>`;
     }
 
     function showDetail(node) {
-      const panel = document.getElementById('detail-panel');
-      const c = colorHex(TYPE_COLORS[node.type]||0xffffff);
-      const tags = (node.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
-      const files = (node.files||[]).map(f=>`<div class="file-item">\u2514 ${f}</div>`).join('');
-      const nl = graphData.links.filter(l=>linkId(l)===node.id||linkTid(l)===node.id);
-      const conns = nl.map(l=>{
-        const oid = linkId(l)===node.id ? linkTid(l) : linkId(l);
-        const other = graphData.nodes.find(n=>n.id===oid);
-        const rc = colorHex(REL_COLORS[l.relType]||0x667799);
-        return `<div class="conn-item"><span class="conn-rel" style="color:${rc}">[${l.relType}]</span> ${oid}${other?`<div class="conn-name">${other.name}</div>`:''}</div>`;
-      }).join('');
-      panel.innerHTML = `<div class="header"><div style="color:${c};font-size:12px;letter-spacing:0.5px">${TYPE_LABELS[node.type]} : ${node.id}</div>
-        <button class="close-btn" id="close-detail">\u2715</button></div>
-        <div class="entry-title">${node.name}</div>
-        <div class="meta">Status: <span style="color:${c}">${node.status}</span> \u2022 ${node.date} \u2022 ${node.daysSinceReview}d since review</div>
-        ${tags?`<div style="margin-bottom:8px">${tags}</div>`:''}
-        ${files?`<div class="section-label">Files</div>${files}`:''}
-        ${conns?`<div class="section-label">Synapses (${nl.length})</div>${conns}`:''}`;
-      panel.classList.add('visible');
-      document.getElementById('close-detail').onclick = () => { panel.classList.remove('visible'); selectedNode = null; };
-    }
+      const el = document.getElementById('detail');
+      const color = TYPE_COLORS[node.type];
+      const relLinks = links.filter(l => l.source.id === node.id || l.target.id === node.id);
 
-    function setupFilters(data) {
-      const c = document.getElementById('type-filters'); c.innerHTML = '';
-      for (const [type, color] of Object.entries(TYPE_COLORS)) {
-        const cnt = data.nodes.filter(n=>n.type===type).length; if(!cnt) continue;
-        const hex = colorHex(color);
-        const btn = document.createElement('div');
-        btn.className = 'glass filter-btn'; btn.style.color = hex; btn.style.borderColor = hex + '22';
-        btn.innerHTML = `<span class="filter-dot" style="background:${hex}"></span>${TYPE_LABELS[type]} (${cnt})`;
-        btn.onclick = () => {
-          if (activeTypes.has(type)) { activeTypes.delete(type); btn.style.opacity='0.3'; btn.querySelector('.filter-dot').style.background='#333'; }
-          else { activeTypes.add(type); btn.style.opacity='1'; btn.querySelector('.filter-dot').style.background=hex; }
-          if (currentView === '3d') {
-            for (const n of neuronObjects) n.mesh.visible = activeTypes.has(n.node.type);
-            for (const a of axonObjects) {
-              const sn=graphData.nodes.find(x=>x.id===linkId(a.link)), tn=graphData.nodes.find(x=>x.id===linkTid(a.link));
-              a.mesh.visible = sn && tn && activeTypes.has(sn.type) && activeTypes.has(tn.type);
-            }
-          }
-        };
-        c.appendChild(btn);
+      let connectionsHtml = '';
+      for (const l of relLinks) {
+        const other = l.source.id === node.id ? l.target : l.source;
+        const rel = l.source.id === node.id ? (REL_STYLES[l.relType]?.label || l.relType) : ('← ' + (REL_STYLES[l.relType]?.label || l.relType));
+        connectionsHtml += `
+          <div class="d-conn" data-id="${other.id}">
+            <span class="d-conn-dot" style="background:${TYPE_COLORS[other.type]}"></span>
+            <span class="d-conn-rel">${rel}</span>
+            <span class="d-conn-name">${other.id}: ${other.name}</span>
+          </div>`;
       }
-    }
 
-    function setupRegionLegend(data) {
-      const el = document.getElementById('region-legend');
-      const used = new Set(data.nodes.map(n=>n.type));
-      let html = '<div class="rl-title">Brain Regions</div>';
-      for (const [type,r] of Object.entries(BRAIN_REGIONS)) {
-        if (!used.has(type)) continue;
-        html += `<div class="rl-item"><span class="rl-dot" style="background:${colorHex(TYPE_COLORS[type])}"></span>
-          <span>${TYPE_LABELS[type]}</span><span class="rl-region">${r.label}</span></div>`;
-      }
-      el.innerHTML = html;
-    }
+      const tagsHtml = (node.tags || []).map(t => `<span class="d-chip">${t}</span>`).join('');
+      const filesHtml = (node.files || []).map(f => `<div class="d-file">${f}</div>`).join('');
+      const staleHtml = node.isStale ? `<div class="d-stale-warn">&#9888; Not reviewed in ${node.daysSinceReview} days</div>` : '';
 
-    function setupTimeline(data) {
-      if (!data.nodes.length) { document.getElementById('timeline').style.display='none'; return; }
-      const dates = data.nodes.map(n=>new Date(n.date).getTime()).filter(d=>!isNaN(d));
-      if (!dates.length) return;
-      const min=Math.min(...dates), max=Math.max(...dates), range=max-min||1;
-      const track = document.querySelector('.timeline-track'); track.innerHTML = '';
-      for (const node of data.nodes) {
-        const t=new Date(node.date).getTime(); if(isNaN(t)) continue;
-        const dot = document.createElement('div'); dot.className = 'tl-dot';
-        dot.style.left = `${((t-min)/range)*100}%`;
-        dot.style.backgroundColor = colorHex(TYPE_COLORS[node.type]||0xffffff);
-        dot.title = `${node.id}: ${node.name}`;
-        track.appendChild(dot);
-      }
-      const sorted = [...data.nodes].sort((a,b)=>new Date(a.date)-new Date(b.date));
-      document.getElementById('tl-start').textContent = sorted[0].date;
-      document.getElementById('tl-end').textContent = sorted.at(-1).date;
-    }
+      el.innerHTML = `
+        <div class="d-header">
+          <span class="d-type-badge" style="color:${color};border-color:${color}30">${TYPE_SHORT[node.type]}</span>
+          <button class="d-close" onclick="document.getElementById('detail').classList.remove('open');window._deselectNode()">&#215;</button>
+        </div>
+        ${staleHtml}
+        <div class="d-title" style="color:${color}">${node.name}</div>
+        <div class="d-id">${node.id} &middot; ${node.status} &middot; ${node.date || 'no date'}</div>
+        <div class="d-meta">
+          ${node.severity ? `<span class="d-chip" style="border-color:${color}30;color:${color}">${node.severity}</span>` : ''}
+          ${tagsHtml}
+        </div>
+        ${node.files?.length ? `<div class="d-section">Files</div>${filesHtml}` : ''}
+        ${relLinks.length ? `<div class="d-section">Connections (${relLinks.length})</div>${connectionsHtml}` : '<div class="d-section">No connections</div>'}
+      `;
 
-    function setupSearch() {
-      const input = document.getElementById('search-input'), results = document.getElementById('search-results');
-      input.addEventListener('input', () => {
-        const q = input.value.trim().toLowerCase();
-        if (!q) { results.classList.remove('visible'); highlightSet.clear(); if(currentView==='3d') applyHighlight3D(); return; }
-        const matches = graphData.nodes.filter(n=>
-          n.id.toLowerCase().includes(q)||n.name.toLowerCase().includes(q)||(n.tags||[]).some(t=>t.toLowerCase().includes(q)));
-        results.innerHTML = matches.length
-          ? matches.slice(0,8).map(n=>`<div class="search-item" data-id="${n.id}"><span class="si-id" style="color:${colorHex(TYPE_COLORS[n.type]||0xffffff)}">${n.id}</span>${n.name}</div>`).join('')
-          : '<div class="search-item" style="color:var(--text-secondary)">No matches</div>';
-        results.classList.add('visible');
-        highlightSet.clear(); matches.forEach(m=>highlightSet.add(m.id));
-        if (currentView === '3d') applyHighlight3D();
-        results.querySelectorAll('.search-item[data-id]').forEach(el=>{
-          el.onclick = ()=>{
-            const node=graphData.nodes.find(n=>n.id===el.dataset.id);
-            if(node){selectedNode=node;showDetail(node);
-              if(currentView==='3d') focusNeuron3D(node.id);
-              else focusNode2D(node.id);
-            }
-            results.classList.remove('visible'); input.value='';
-            highlightSet.clear(); if(currentView==='3d') applyHighlight3D();
-          };
+      el.classList.add('open');
+
+      // Connection clicks navigate
+      el.querySelectorAll('.d-conn').forEach(conn => {
+        conn.addEventListener('click', () => {
+          const n = nodes.find(n => n.id === conn.dataset.id);
+          if (n) { selectNode(n); focusNode(n); }
         });
       });
-      input.addEventListener('keydown', e=>{
-        if(e.key==='Escape'){input.value='';results.classList.remove('visible');highlightSet.clear();if(currentView==='3d')applyHighlight3D();input.blur();}
-      });
-    }
-    function focusNeuron3D(id) {
-      const n = neuronObjects.find(x=>x.node.id===id); if(!n) return;
-      controls.autoRotate=false; animateCamera(n.pos.clone());
-    }
-    function focusNode2D(id) {
-      const n = nodes2d.find(x=>x.id===id); if(!n) return;
-      // Center on node
-      pan2d.x = -n.x * zoom2d; pan2d.y = -n.y * zoom2d;
     }
 
-    // ═══════════════════════════════════════
-    //  VIEW SWITCHING
-    // ═══════════════════════════════════════
+    // ═══════════════════════════════════════════
+    //  INTERACTION
+    // ═══════════════════════════════════════════
 
-    function switchView(view) {
-      if (view === currentView) return;
-      currentView = view;
-      highlightSet.clear(); hoverNeuron3d = null; hover2d = null;
-      document.getElementById('node-tooltip').style.opacity = '0';
+    function findNodeAt(sx, sy) {
+      const [wx, wy] = screenToWorld(sx, sy);
+      let closest = null, closestD = Infinity;
+      for (let i = nodes.length - 1; i >= 0; i--) {
+        const n = nodes[i];
+        if (!activeTypes.has(n.type)) continue;
+        const dx = n.x - wx, dy = n.y - wy;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        const hitR = n.radius + 4 / zoom;
+        if (d < hitR && d < closestD) { closest = n; closestD = d; }
+      }
+      return closest;
+    }
 
-      if (view === '3d') {
-        renderer.domElement.style.display = 'block';
-        canvas2d.style.display = 'none';
-        document.getElementById('region-legend').style.display = '';
-        document.getElementById('controls-hint').textContent = 'Drag rotate \u2022 Scroll zoom \u2022 Click select \u2022 Double-click focus \u2022 Esc deselect';
-        applyHighlight3D();
+    function setHighlight(node) {
+      highlightSet.clear();
+      if (!node) return;
+      highlightSet.add(node.id);
+      for (const l of links) {
+        if (l.source.id === node.id) highlightSet.add(l.target.id);
+        else if (l.target.id === node.id) highlightSet.add(l.source.id);
+      }
+    }
+
+    function selectNode(node) {
+      selectedNode = node;
+      setHighlight(node);
+      if (node) showDetail(node);
+      else document.getElementById('detail').classList.remove('open');
+    }
+
+    window._deselectNode = () => { selectNode(null); };
+
+    function focusNode(node) {
+      targetPanX = node.x;
+      targetPanY = node.y;
+      targetZoom = Math.max(zoom, 1.5);
+      smoothing = true;
+    }
+
+    // Mouse events
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 1 || spaceDown) {
+        isPanning = true;
+        panStart = { x: e.clientX, y: e.clientY, px: panX, py: panY };
+        canvas.style.cursor = 'grabbing';
+        e.preventDefault();
+        return;
+      }
+      if (e.button !== 0) return;
+
+      const n = findNodeAt(e.clientX, e.clientY);
+      dragMoved = false;
+      if (n) {
+        dragNode = n;
+        dragNode.pinned = true;
+        dragStart = { x: e.clientX, y: e.clientY };
+        isDragging = true;
+        canvas.style.cursor = 'grabbing';
       } else {
-        renderer.domElement.style.display = 'none';
-        canvas2d.style.display = 'block';
-        document.getElementById('region-legend').style.display = 'none';
-        document.getElementById('controls-hint').textContent = 'Drag nodes \u2022 Scroll zoom \u2022 Click select \u2022 Right-drag pan \u2022 Esc deselect';
-        if (!nodes2d.length) init2D();
+        isPanning = true;
+        panStart = { x: e.clientX, y: e.clientY, px: panX, py: panY };
+        canvas.style.cursor = 'grabbing';
       }
-      document.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
-    }
-
-    // ═══════════════════════════════════════
-    //  ANIMATION LOOP
-    // ═══════════════════════════════════════
-
-    function animate() {
-      requestAnimationFrame(animate);
-      if (currentView === '3d') {
-        const dt = clock.getDelta(), elapsed = clock.getElapsedTime();
-        for (const u of brainUniforms) u.time.value = elapsed;
-        for (const n of neuronObjects) {
-          if (!n.mesh.visible) continue;
-          n.mesh.scale.setScalar(1 + Math.sin(elapsed * 1.2 + n.node.id.charCodeAt(n.node.id.length-1)*0.7) * 0.05);
-        }
-        for (const imp of impulseObjects) { imp.t=(imp.t+imp.speed*dt)%1; imp.mesh.position.copy(imp.curve.getPointAt(Math.abs(imp.t))); }
-        controls.update();
-        composer.render();
-      } else {
-        simulate2D();
-        render2D();
-      }
-    }
-
-    // ═══════════════════════════════════════
-    //  INIT
-    // ═══════════════════════════════════════
-
-    async function init() {
-      graphData = await fetchGraphData();
-
-      // 3D setup
-      renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x0a0e1a, 1);
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      document.body.prepend(renderer.domElement);
-
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
-      camera.position.set(7, 5, 13);
-      controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true; controls.dampingFactor = 0.06;
-      controls.rotateSpeed = 0.5; controls.minDistance = 4; controls.maxDistance = 35;
-      controls.autoRotate = true; controls.autoRotateSpeed = 0.15;
-
-      scene.add(new THREE.AmbientLight(0x0a1020, 0.2));
-      const stars = createStarfield(); scene.add(stars);
-      scene.add(buildBrain());
-
-      const posMap = new Map();
-      graphData.nodes.forEach((node, i) => {
-        const pos = placeNeuron3D(node, i); posMap.set(node.id, pos);
-        scene.add(createNeuron3D(node, pos));
-      });
-      const usedTypes = new Set(graphData.nodes.map(n => n.type));
-      for (const [type, r] of Object.entries(BRAIN_REGIONS)) {
-        if (!usedTypes.has(type)) continue;
-        scene.add(createRegionLabel(r.label, new THREE.Vector3(r.center[0], r.center[1]+r.spread*0.7, r.center[2]), colorHex(TYPE_COLORS[type])));
-      }
-      scene.add(buildConnections3D(graphData, posMap));
-      const bloom = setupPostProcessing();
-
-      // 3D events
-      renderer.domElement.addEventListener('pointermove', onPointerMove3D);
-      renderer.domElement.addEventListener('click', onClick3D);
-      renderer.domElement.addEventListener('dblclick', onDblClick3D);
-      renderer.domElement.addEventListener('pointerdown', () => { controls.autoRotate = false; });
-
-      // 2D setup
-      init2D();
-      setup2DEvents();
-
-      // HUD
-      updateHud(graphData); setupFilters(graphData); setupRegionLegend(graphData);
-      setupTimeline(graphData); setupSearch();
-
-      // View toggle
-      document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchView(btn.dataset.view));
-      });
-
-      // Global events
-      window.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-          selectedNode = null;
-          document.getElementById('detail-panel').classList.remove('visible');
-          highlightSet.clear();
-          if (currentView === '3d') applyHighlight3D();
-        }
-      });
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        composer.setSize(window.innerWidth, window.innerHeight);
-        bloom.resolution.set(window.innerWidth, window.innerHeight);
-        resize2D();
-      });
-
-      animate();
-      (function spin() { stars.rotation.y += 0.00002; requestAnimationFrame(spin); })();
-    }
-
-    init().catch(err => {
-      document.body.innerHTML = `<div style="color:#dd3344;padding:40px;font-family:monospace">
-        <h2 style="color:var(--accent)">Neural Cortex Error</h2>
-        <p style="margin-top:12px">${err.message}</p>
-        <p style="color:#5a7090;margin-top:12px">Ensure server is running and .brain/index.json exists.</p></div>`;
     });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isPanning && panStart) {
+        const dx = (e.clientX - panStart.x) / zoom;
+        const dy = (e.clientY - panStart.y) / zoom;
+        panX = panStart.px - dx;
+        panY = panStart.py - dy;
+        smoothing = false;
+        return;
+      }
+      if (isDragging && dragNode) {
+        const [wx, wy] = screenToWorld(e.clientX, e.clientY);
+        dragNode.x = wx;
+        dragNode.y = wy;
+        dragNode.vx = 0;
+        dragNode.vy = 0;
+        dragMoved = true;
+        simAlpha = Math.max(simAlpha, 0.1);
+        return;
+      }
+
+      const n = findNodeAt(e.clientX, e.clientY);
+      if (n !== hoverNode) {
+        hoverNode = n;
+        canvas.style.cursor = n ? 'pointer' : (spaceDown ? 'grab' : 'crosshair');
+        if (!selectedNode) setHighlight(n);
+      }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (isPanning) {
+        isPanning = false;
+        canvas.style.cursor = spaceDown ? 'grab' : 'crosshair';
+        return;
+      }
+      if (isDragging && dragNode) {
+        if (!dragMoved) {
+          selectNode(dragNode);
+        }
+        dragNode.pinned = false;
+        dragNode = null;
+        isDragging = false;
+        canvas.style.cursor = hoverNode ? 'pointer' : 'crosshair';
+        return;
+      }
+      // Click on empty space
+      if (!dragMoved && e.button === 0 && !isDragging) {
+        selectNode(null);
+      }
+    });
+
+    canvas.addEventListener('dblclick', (e) => {
+      const n = findNodeAt(e.clientX, e.clientY);
+      if (n) { selectNode(n); focusNode(n); }
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.max(0.1, Math.min(8, zoom * factor));
+
+      // Zoom towards cursor: keep world point under cursor stationary
+      const [wx, wy] = screenToWorld(e.clientX, e.clientY);
+      zoom = newZoom;
+      // After zoom change, the same screen point maps to a different world point
+      // Adjust pan so that (wx, wy) still maps to the cursor position
+      panX = wx - (e.clientX - W / 2) / zoom;
+      panY = wy - (e.clientY - H / 2) / zoom;
+      smoothing = false;
+    }, { passive: false });
+
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+      if (e.key === ' ') { spaceDown = true; canvas.style.cursor = 'grab'; e.preventDefault(); }
+      if (e.key === 'Escape') {
+        selectNode(null);
+        document.getElementById('search').value = '';
+        searchQuery = '';
+        document.getElementById('search-results').classList.remove('open');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('search').focus();
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.key === ' ') { spaceDown = false; canvas.style.cursor = hoverNode ? 'pointer' : 'crosshair'; }
+    });
+
+    // Search
+    const searchInput = document.getElementById('search');
+    const searchResults = document.getElementById('search-results');
+    searchInput.addEventListener('input', () => {
+      searchQuery = searchInput.value.trim();
+      if (!searchQuery) {
+        searchResults.classList.remove('open');
+        setHighlight(selectedNode);
+        return;
+      }
+      const q = searchQuery.toLowerCase();
+      const matches = nodes.filter(n =>
+        n.name.toLowerCase().includes(q) || n.id.toLowerCase().includes(q) ||
+        (n.tags || []).some(t => t.toLowerCase().includes(q))
+      ).slice(0, 12);
+
+      if (matches.length) {
+        searchResults.innerHTML = matches.map(n =>
+          `<div class="sr-item" data-id="${n.id}">
+            <span class="sr-dot" style="background:${TYPE_COLORS[n.type]}"></span>
+            <span class="sr-id">${n.id}</span>
+            <span class="sr-name">${n.name}</span>
+          </div>`
+        ).join('');
+        searchResults.classList.add('open');
+
+        // Highlight matching nodes
+        highlightSet.clear();
+        matches.forEach(m => highlightSet.add(m.id));
+
+        searchResults.querySelectorAll('.sr-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const n = nodes.find(n => n.id === item.dataset.id);
+            if (n) {
+              selectNode(n);
+              focusNode(n);
+              searchResults.classList.remove('open');
+              searchInput.blur();
+            }
+          });
+        });
+      } else {
+        searchResults.innerHTML = '<div style="padding:10px;font-size:11px;color:var(--text-dim)">No results</div>';
+        searchResults.classList.add('open');
+        highlightSet.clear();
+      }
+    });
+
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => searchResults.classList.remove('open'), 200);
+    });
+
+    // Export PNG
+    document.getElementById('btn-export').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `brain-graph-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    // Reset view
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      targetPanX = 0; targetPanY = 0; targetZoom = 1;
+      smoothing = true;
+      selectNode(null);
+    });
+
+    // Minimap click
+    document.getElementById('minimap').addEventListener('click', (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) / rect.width;
+      const my = (e.clientY - rect.top) / rect.height;
+
+      // Convert minimap coords to world coords
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (const n of nodes) {
+        if (!activeTypes.has(n.type)) continue;
+        if (n.x < minX) minX = n.x;
+        if (n.x > maxX) maxX = n.x;
+        if (n.y < minY) minY = n.y;
+        if (n.y > maxY) maxY = n.y;
+      }
+      const pad = 40;
+      minX -= pad; maxX += pad; minY -= pad; maxY += pad;
+
+      targetPanX = minX + mx * (maxX - minX);
+      targetPanY = minY + my * (maxY - minY);
+      smoothing = true;
+    });
+
+    // ═══════════════════════════════════════════
+    //  RESIZE
+    // ═══════════════════════════════════════════
+
+    function resize() {
+      dpr = window.devicePixelRatio || 1;
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ═══════════════════════════════════════════
+    //  MAIN LOOP
+    // ═══════════════════════════════════════════
+
+    let frameCount = 0;
+    function loop() {
+      simulate();
+      render();
+      frameCount++;
+      if (frameCount % 10 === 0) renderMinimap();
+      animFrame = requestAnimationFrame(loop);
+    }
+
+    loadData().then(() => {
+      loop();
+    }).catch(err => {
+      document.body.innerHTML = `<div style="padding:40px;font-family:monospace;color:#f04060">
+        <h2>Failed to load graph data</h2>
+        <p>${err.message}</p>
+        <p>Make sure .brain/index.json exists and the server is running.</p>
+      </div>`;
+    });
+  })();
   </script>
 </body>
 </html>

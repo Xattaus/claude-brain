@@ -85,7 +85,7 @@ process.stdin.on('end', async () => {
         // ── 2. Find related entries (decisions, bugs, implementations) for this file ──
         const entries = indexData.entries || [];
         const relatedEntries = entries.filter(e =>
-            e.files && e.files.some(ef => pathMatches(norm, ef.replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase()))
+            Array.isArray(e.files) && e.files.some(ef => pathMatches(norm, ef.replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase()))
         );
 
         const activeDecisions = relatedEntries.filter(e => e.type === 'decision' && e.status === 'active');

@@ -470,8 +470,9 @@ describe('BrainSearch — edge cases', () => {
         assert.ok(!keywords.includes('the'));
         assert.ok(!keywords.includes('is'));
         assert.ok(!keywords.includes('being'));
-        assert.ok(keywords.includes('authentication'));
-        assert.ok(keywords.includes('tested'));
+        // After word processing: 'authentication' → 'auth' (synonym), 'tested' → 'test' (synonym)
+        assert.ok(keywords.includes('auth'));
+        assert.ok(keywords.includes('test'));
     });
 });
 

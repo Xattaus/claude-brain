@@ -67,6 +67,11 @@ async function main() {
       case 'rebuild':
         await cmdRebuild();
         break;
+      case 'visualize':
+      case 'viz':
+      case 'graph':
+        await cmdVisualize();
+        break;
       case 'help':
       default:
         showHelp();
@@ -398,6 +403,27 @@ async function cmdRebuild() {
   }
 }
 
+async function cmdVisualize() {
+  // Find visualize.js relative to this CLI script
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const { existsSync } = await import('node:fs');
+  const { fork } = await import('node:child_process');
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const vizScript = join(__dirname, 'visualize.js');
+
+  if (!existsSync(vizScript)) {
+    console.error('Error: visualize.js not found at ' + vizScript);
+    process.exit(1);
+  }
+
+  // Fork visualize.js with the current project path
+  const child = fork(vizScript, [projectPath], { stdio: 'inherit' });
+  child.on('exit', (code) => process.exit(code || 0));
+}
+
 function showHelp() {
   console.log(`
 Claude Brain CLI
@@ -421,9 +447,11 @@ Commands:
   snapshot [list|create|restore] Manage snapshots
   metrics                       Show usage metrics
   rebuild                       Rebuild index from files
+  visualize                     Open interactive knowledge graph (alias: viz, graph)
 
 Examples:
   node cli.js search "authentication"
+  node cli.js visualize
   node cli.js update
   node cli.js snapshot create "before-refactoring"
   `);

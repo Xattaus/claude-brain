@@ -22,7 +22,7 @@ Your agent forgets everything between sessions — and loses context within them
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiByeD0iNCIgZmlsbD0iIzQ0OCIvPjx0ZXh0IHg9IjEyIiB5PSIxNiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iMTIiPk08L3RleHQ+PC9zdmc+)](https://modelcontextprotocol.io)
-![Tools](https://img.shields.io/badge/MCP_Tools-34-ff6b6b)
+![Tools](https://img.shields.io/badge/MCP_Tools-35-ff6b6b)
 ![Version](https://img.shields.io/badge/version-3.0.0-blue)
 
 </div>
@@ -146,7 +146,7 @@ After edits, `brain_validate_change()` verifies nothing was violated. If it fail
 
 <br>
 
-## 34 MCP Tools
+## 35 MCP Tools
 
 <details>
 <summary><b>Core — Query & Discovery</b> <kbd>5 tools</kbd></summary>
@@ -230,11 +230,12 @@ After edits, `brain_validate_change()` verifies nothing was violated. If it fail
 </details>
 
 <details>
-<summary><b>Advanced</b> <kbd>7 tools</kbd></summary>
+<summary><b>Advanced</b> <kbd>8 tools</kbd></summary>
 <br>
 
 | Tool | What it does |
 |:-----|:-------------|
+| `brain_visualize` | Launch interactive knowledge graph in the browser |
 | `brain_mine_sessions` | Extract context from past Claude Code sessions |
 | `brain_coordinate_team` | Run brain agents (curator, documenter, reviewer, backlog) |
 | `brain_rebuild_index` | Rebuild index.json from files (repair corrupted state) |
@@ -283,15 +284,16 @@ node cli.js link IMPL-005 DEC-002 implements            # link entries
 
 <br>
 
-## 3D Visualizer
+## Knowledge Graph Visualizer
 
-Interactive neural map of your project's knowledge graph:
+Interactive force-directed graph of your project's brain:
 
 ```bash
-node visualize.js /path/to/your/project
+node cli.js visualize                    # from any project with brain installed
+node visualize.js /path/to/your/project  # or directly with a path
 ```
 
-Opens a browser with an interactive 3D brain visualization built with three.js — neurons colored by type, axon connections showing relationships, with zoom/pan/rotate controls.
+Opens a browser with an Obsidian-style knowledge graph — force-directed physics, animated particles flowing along connections, search with real-time highlighting, detail panel, minimap, timeline, type filters, and export to PNG. Nodes are colored by type, sized by connections, and dimmed by status.
 
 <br>
 
@@ -301,7 +303,7 @@ Opens a browser with an interactive 3D brain visualization built with three.js �
 ┌─────────────────────────────────────────────────────────────┐
 │                        MCP Server                           │
 │                      mcp-server.js                          │
-│                     (34 tools exposed)                      │
+│                     (35 tools exposed)                      │
 ├─────────────┬──────────────┬──────────────┬─────────────────┤
 │ Brain       │ Search       │ Graph        │ Conflict        │
 │ Manager     │              │              │ Checker         │
