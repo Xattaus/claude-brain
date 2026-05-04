@@ -3,15 +3,16 @@
 /**
  * Brain MCP Server — Autonomous context management for AI coding agents
  *
- * 35 tools organized in categories:
- *   Core (5):     overview, search, get_entry, list, get_lessons
- *   Recording (5): record_decision, record_bug, record_implementation, record_pattern, record_lesson
- *   Context (4):  link_entries, get_context_for_files, traverse_graph, check_conflicts
- *   Safety (4):   preflight, validate_change, rebuild_rules, restore_snapshot
- *   Planning (4): record_plan, update_plan, get_backlog, get_session_summary
+ * 39 tools organized in categories:
+ *   Core (5):        overview, search, get_entry, list, get_lessons
+ *   Recording (5):   record_decision, record_bug, record_implementation, record_pattern, record_lesson
+ *   Context (4):     link_entries, get_context_for_files, traverse_graph, check_conflicts
+ *   Safety (4):      preflight, validate_change, rebuild_rules, restore_snapshot
+ *   Planning (4):    record_plan, update_plan, get_backlog, get_session_summary
+ *   Integration (4): sync, get_environment, scan_environment, record_research
  *   Maintenance (5): update_entry, review_entry, health, get_history, auto_document
- *   Advanced (8): visualize, mine_sessions, coordinate_team, rebuild_index,
- *                 get_metrics, create_snapshot, list_snapshots, update
+ *   Advanced (8):    visualize, mine_sessions, coordinate_team, rebuild_index,
+ *                    get_metrics, create_snapshot, list_snapshots, update
  */
 
 import { readFile } from 'node:fs/promises';

@@ -26,11 +26,12 @@ If FAIL: **REVERT** or ask the user.
 ## Mandatory Instructions
 
 ### At session start
-1. Call `brain_get_overview` to get the project overview + health warnings
+1. Call `brain_get_overview` to get the project overview (auto-syncs superpowers docs + auto-generates overview if stale)
 2. Call `brain_get_lessons` to review learned lessons — DO NOT repeat past mistakes
 3. Call `brain_get_backlog` to see incomplete plans and deferred tasks
-4. Evaluate if any deferred task is now relevant
-5. DO NOT read .brain/ files directly — use MCP tools
+4. Call `brain_get_environment` to know available tools, skills, and agents
+5. Evaluate if any deferred task is now relevant
+6. DO NOT read .brain/ files directly — use MCP tools
 
 ### While working
 1. **Before changes**: Call `brain_check_conflicts` to check for conflicts with existing decisions
@@ -38,14 +39,20 @@ If FAIL: **REVERT** or ask the user.
 3. **Searching**: Use `brain_search` or `brain_list` — NOT grep on .brain/
 4. **Details**: Use `brain_get_entry` for a single entry
 
+### Research and exploration
+When evaluating multiple approaches before making a decision:
+1. Call `brain_record_research` with alternatives explored, rejected options, and conclusion
+2. Link the research entry to the resulting decision with `brain_link_entries`
+
 ### After changes — ALWAYS save to brain
 1. **Architecture decision** → `brain_record_decision` (record WHY this choice was made)
 2. **Bug fix** → `brain_record_bug` (symptoms, root cause, fix)
 3. **New implementation / significant change** → `brain_record_implementation`
 4. **Reusable pattern** → `brain_record_pattern`
 5. **Lesson from mistake** → `brain_record_lesson` (what happened, lesson, rule)
-6. **Plan** → `brain_record_plan` (what was planned, done, deferred)
-7. **Create links** → `brain_link_entries` between entries (implements, fixes, supersedes, etc.)
+6. **Research process** → `brain_record_research` (alternatives, rejections, conclusion)
+7. **Plan** → `brain_record_plan` (what was planned, done, deferred)
+8. **Create links** → `brain_link_entries` between entries (implements, fixes, supersedes, etc.)
 
 ### Self-Improvement Loop
 When the user corrects you or you discover a mistake:
@@ -99,6 +106,7 @@ If `brain_check_conflicts` returns matches:
 - `bugs/` — Bug fixes and workarounds
 - `patterns/` — Reusable patterns
 - `lessons/` — Lessons learned from mistakes and corrections
+- `research/` — Research processes (alternatives, rejections, conclusions)
 - `plans/` — Plans and deferred tasks
 - `history/changelog.md` — Change history
 
