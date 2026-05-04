@@ -66,12 +66,12 @@ describe('Core handlers — brain_get_overview', () => {
     const result = await coreHandlers.brain_get_overview(ctx, {});
     assert.ok(Array.isArray(result));
     assert.equal(result[0].type, 'text');
-    assert.ok(result[0].text.includes('Test Project'));
+    assert.ok(result[0].text.includes('test-project'));
   });
 
   it('compact mode truncates overview', async () => {
     const result = await coreHandlers.brain_get_overview(ctx, { compact: true });
-    assert.ok(result[0].text.includes('Test Project'));
+    assert.ok(result[0].text.includes('test-project'));
   });
 
   it('includes active decisions section when decisions exist', async () => {
