@@ -118,7 +118,7 @@ const TOOLS = [
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Search query (words to match)' },
-        type: { type: 'string', enum: ['decision', 'bug', 'implementation', 'pattern', 'plan', 'lesson'], description: 'Filter by entry type' },
+        type: { type: 'string', enum: ['decision', 'bug', 'implementation', 'pattern', 'plan', 'lesson', 'research'], description: 'Filter by entry type' },
         tags: { type: 'array', items: { type: 'string' }, description: 'Filter by tags' },
         compact: { type: 'boolean', description: 'Compact output (IDs + titles only). Default: false' }
       },
@@ -142,7 +142,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        type: { type: 'string', enum: ['decision', 'bug', 'implementation', 'pattern', 'plan', 'lesson'] },
+        type: { type: 'string', enum: ['decision', 'bug', 'implementation', 'pattern', 'plan', 'lesson', 'research'] },
         status: { type: 'string', description: 'Filter by status (active, fixed, open, current, etc.)' },
         tags: { type: 'array', items: { type: 'string' } },
         compact: { type: 'boolean', description: 'Compact output (IDs + titles only). Default: false' }
@@ -632,6 +632,71 @@ const TOOLS = [
     name: 'brain_rebuild_rules',
     description: 'Rebuild the cognitive firewall rule index from all brain entries. Use if rules seem outdated or after manual brain file edits.',
     inputSchema: { type: 'object', properties: {}, required: [] }
+  },
+  {
+    name: 'brain_sync',
+    description: 'Sync external docs (superpowers specs/plans) to brain entries. Auto-runs on overview, but can be called manually to force sync.',
+    inputSchema: { type: 'object', properties: {}, required: [] }
+  },
+  {
+    name: 'brain_get_environment',
+    description: 'Get environment info: available MCP servers, superpowers skills, custom agents. Scans and caches to environment.json.',
+    inputSchema: { type: 'object', properties: {}, required: [] }
+  },
+  {
+    name: 'brain_scan_environment',
+    description: 'Force rescan of environment (MCP servers, skills, agents). Updates .brain/environment.json.',
+    inputSchema: { type: 'object', properties: {}, required: [] }
+  },
+  {
+    name: 'brain_record_research',
+    description: 'Record a research process — alternatives explored, rejected options with reasons, and final conclusion. Use when evaluating multiple approaches before making a decision.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Research topic title' },
+        alternatives: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Alternative name' },
+              description: { type: 'string', description: 'What this alternative is' }
+            },
+            required: ['name', 'description']
+          },
+          description: 'Alternatives that were explored'
+        },
+        rejected: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Rejected alternative name' },
+              reason: { type: 'string', description: 'Why it was rejected' }
+            },
+            required: ['name', 'reason']
+          },
+          description: 'Which alternatives were rejected and why'
+        },
+        conclusion: { type: 'string', description: 'Final conclusion / chosen approach' },
+        agent_data: { type: 'string', description: 'Data from subagent research (optional)' },
+        tags: { type: 'array', items: { type: 'string' } },
+        files: { type: 'array', items: { type: 'string' }, description: 'Related files' },
+        related: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: 'Entry ID' },
+              rel: { type: 'string', enum: RELATION_TYPES, description: 'Relation type' }
+            },
+            required: ['id', 'rel']
+          }
+        }
+      },
+      required: ['title', 'alternatives', 'conclusion']
+    }
   }
 ];
 
