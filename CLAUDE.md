@@ -1,7 +1,8 @@
 # Project Brain (Autonomous Context Management)
 
-This project uses an autonomous context management system.
+This project uses an autonomous context management system with 52 MCP tools.
 The brain lives in the `.brain/` directory and is accessed via MCP tools.
+Code structure analysis lives in `.brain/code-graph/` using tree-sitter AST parsing.
 
 ## COGNITIVE FIREWALL — Automatic Protection
 
@@ -70,6 +71,38 @@ If `brain_check_conflicts` returns matches:
 - Ask if the user wants to override, update, or cancel the change
 - Critical/high-priority bugs are escalated to CONFLICT level (not just WARNING)
 
+## Code Graph — Automatic Code Structure Analysis
+
+The brain includes a code graph system that uses tree-sitter to parse source code ASTs and build a knowledge graph of symbols, dependencies, and relationships.
+
+### When to use code graph tools
+- **Understanding code structure**: `brain_code_query` — search for symbols, files, or concepts
+- **Before refactoring**: `brain_code_blast` — check blast radius of changes to files
+- **Finding dependencies**: `brain_code_neighbors` — get imports/exports/calls for a symbol
+- **Navigating code**: `brain_code_path` — find shortest path between two symbols
+- **Code health**: `brain_code_gods` — find god nodes (over-connected symbols needing refactoring)
+- **Architecture insights**: `brain_code_surprises` — find unexpected cross-module/cross-language edges
+
+### Code Graph tools (13)
+| Tool | Purpose |
+|------|---------|
+| `brain_code_build` | Build/rebuild the code graph from source files |
+| `brain_code_query` | Search the graph with IDF-weighted token-budgeted results |
+| `brain_code_node` | Get details for a specific node by ID |
+| `brain_code_neighbors` | Get incoming/outgoing edges for a node |
+| `brain_code_path` | Find shortest path between two nodes |
+| `brain_code_community` | Get nodes in a detected community cluster |
+| `brain_code_stats` | Get graph statistics (nodes, edges, languages, types) |
+| `brain_code_blast` | Compute blast radius for changed files |
+| `brain_code_gods` | Find god nodes (P99 degree, refactoring candidates) |
+| `brain_code_surprises` | Find surprising/unexpected edges |
+| `brain_code_health` | Check if graph is built and up to date |
+| `brain_bridge` | Manually link a brain entry to a code graph node |
+| `brain_bridge_auto` | Auto-detect bridges between brain entries and code nodes |
+
+### Supported languages
+JavaScript, TypeScript, Python, Rust (tree-sitter WASM parsers in `lib/code-graph/wasm/`)
+
 ## .brain/ directory structure
 - `overview.md` — Project overview (compact)
 - `decisions/` — Architecture Decision Records (ADR format)
@@ -78,3 +111,4 @@ If `brain_check_conflicts` returns matches:
 - `patterns/` — Reusable patterns
 - `lessons/` — Lessons learned from mistakes and corrections
 - `history/changelog.md` — Change history
+- `code-graph/` — Code structure graph data (auto-generated)

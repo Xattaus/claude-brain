@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Brain Visualizer — Sci-fi 3D neural map of project knowledge
+ * Brain Visualizer — Sci-fi neural map of project knowledge & code structure
  *
  * Usage:
- *   node visualize.js [project-path]
+ *   node visualize.js [project-path]          — knowledge graph (brain entries)
+ *   node visualize.js [project-path] --code   — code graph (AST structure)
  *
- * Opens a browser with an interactive 3D visualization of the .brain/ data.
+ * Opens a browser with an interactive visualization of the .brain/ data.
  * No external dependencies — uses Node.js built-in http module.
  */
 
@@ -104,21 +105,59 @@ async function loadGraphData(projectPath) {
   };
 }
 
+// ── Code graph data loading ──
+
+async function loadCodeGraphData(projectPath) {
+  const codeGraphDir = join(projectPath, '.brain', 'code-graph');
+
+  const graphPath = join(codeGraphDir, 'graph.json');
+  const communitiesPath = join(codeGraphDir, 'communities.json');
+  const analysisPath = join(codeGraphDir, 'analysis.json');
+
+  const result = { graph: { nodes: [], edges: [] }, communities: {}, analysis: {} };
+
+  if (existsSync(graphPath)) {
+    result.graph = JSON.parse(await readFile(graphPath, 'utf-8'));
+  }
+  if (existsSync(communitiesPath)) {
+    result.communities = JSON.parse(await readFile(communitiesPath, 'utf-8'));
+  }
+  if (existsSync(analysisPath)) {
+    result.analysis = JSON.parse(await readFile(analysisPath, 'utf-8'));
+  }
+
+  return result;
+}
+
 // ── HTTP server ──
 
-async function startServer(projectPath) {
-  const templatePath = join(__dirname, 'templates', 'visualizer', 'index.html');
+async function startServer(projectPath, mode) {
+  const brainTemplatePath = join(__dirname, 'templates', 'visualizer', 'index.html');
+  const codeTemplatePath = join(__dirname, 'templates', 'visualizer', 'code-graph.html');
 
   const server = createServer(async (req, res) => {
     try {
       const url = req.url.split('?')[0];
 
       if (url === '/' || url === '/index.html') {
+        const templatePath = mode === 'code' ? codeTemplatePath : brainTemplatePath;
         const html = await readFile(templatePath, 'utf-8');
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+        res.end(html);
+      } else if (url === '/code' || url === '/code/') {
+        const html = await readFile(codeTemplatePath, 'utf-8');
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
+        res.end(html);
+      } else if (url === '/brain' || url === '/brain/') {
+        const html = await readFile(brainTemplatePath, 'utf-8');
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
         res.end(html);
       } else if (url === '/api/graph') {
         const data = await loadGraphData(projectPath);
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+        res.end(JSON.stringify(data));
+      } else if (url === '/api/code-graph') {
+        const data = await loadCodeGraphData(projectPath);
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
         res.end(JSON.stringify(data));
       } else {
@@ -151,26 +190,43 @@ function openBrowser(url) {
 // ── Main ──
 
 async function main() {
+  const isCodeMode = process.argv.includes('--code');
   const projectPath = resolveBrainPath();
   if (!projectPath) {
     console.error('Error: No .brain/ folder found.');
-    console.error('Usage: node visualize.js [project-path]');
+    console.error('Usage: node visualize.js [project-path] [--code]');
     console.error('Or set BRAIN_PROJECT_PATH environment variable.');
     process.exit(1);
   }
 
-  // Quick validation
-  const data = await loadGraphData(projectPath);
+  const mode = isCodeMode ? 'code' : 'brain';
 
-  console.log();
-  console.log('  \u2588\u2588\u2588 Brain Neural Map \u2588\u2588\u2588');
-  console.log();
-  console.log(`  Project: ${projectPath}`);
-  console.log(`  Entries: ${data.nodes.length} nodes, ${data.links.length} links`);
-  console.log();
+  if (isCodeMode) {
+    const codeGraphPath = join(projectPath, '.brain', 'code-graph', 'graph.json');
+    if (!existsSync(codeGraphPath)) {
+      console.error('Error: No code graph found. Run brain_code_build first.');
+      process.exit(1);
+    }
+    const data = await loadCodeGraphData(projectPath);
+    console.log();
+    console.log('  \u2588\u2588\u2588 Brain Code Graph \u2588\u2588\u2588');
+    console.log();
+    console.log(`  Project: ${projectPath}`);
+    console.log(`  Nodes: ${data.graph.nodes?.length || 0}, Edges: ${data.graph.edges?.length || 0}`);
+    console.log();
+  } else {
+    const data = await loadGraphData(projectPath);
+    console.log();
+    console.log('  \u2588\u2588\u2588 Brain Neural Map \u2588\u2588\u2588');
+    console.log();
+    console.log(`  Project: ${projectPath}`);
+    console.log(`  Entries: ${data.nodes.length} nodes, ${data.links.length} links`);
+    console.log();
+  }
 
-  const { url } = await startServer(projectPath);
+  const { url } = await startServer(projectPath, mode);
   console.log(`  \u2192 ${url}`);
+  console.log(`  Also available: ${url}/${isCodeMode ? 'brain' : 'code'}`);
   console.log();
   console.log('  Press Ctrl+C to stop.');
   console.log();
