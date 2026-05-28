@@ -33,10 +33,21 @@ describe('Language configs', () => {
     assert.equal(config, null);
   });
 
+  it('returns config for rust', () => {
+    const config = getLanguageConfig('rust');
+    assert.ok(config);
+    assert.equal(config.name, 'rust');
+    assert.ok(config.nodeTypes.function.length > 0);
+    assert.ok(config.nodeTypes.class.length > 0);  // struct_item, enum_item
+    assert.ok(config.nodeTypes.import.length > 0);
+    assert.ok(config.nodeTypes.trait);
+  });
+
   it('lists supported languages', () => {
     const names = getSupportedLanguageNames();
     assert.ok(names.includes('javascript'));
     assert.ok(names.includes('typescript'));
     assert.ok(names.includes('python'));
+    assert.ok(names.includes('rust'));
   });
 });

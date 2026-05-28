@@ -63,6 +63,35 @@ def create_config(path):
     assert.ok(nodeLabels.includes('create_config'), 'should find create_config');
   });
 
+  it('extracts from Rust', async () => {
+    const source = `
+use std::collections::HashMap;
+use crate::config::Settings;
+
+pub struct AppState {
+    data: HashMap<String, String>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        AppState { data: HashMap::new() }
+    }
+
+    pub fn get(&self, key: &str) -> Option<&String> {
+        self.data.get(key)
+    }
+}
+
+pub fn create_app() -> AppState {
+    AppState::new()
+}
+`;
+    const result = await extractFromSource(source, 'src/app.rs', 'rust');
+    const nodeLabels = result.nodes.map(n => n.label);
+    assert.ok(nodeLabels.includes('AppState'), 'should find AppState struct');
+    assert.ok(nodeLabels.includes('create_app'), 'should find create_app function');
+  });
+
   it('assigns confidence levels', async () => {
     const source = `
 import { foo } from './bar';
