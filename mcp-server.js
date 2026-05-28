@@ -3,7 +3,7 @@
 /**
  * Brain MCP Server — Autonomous context management for AI coding agents
  *
- * 39 tools organized in categories:
+ * 52 tools organized in categories:
  *   Core (5):        overview, search, get_entry, list, get_lessons
  *   Recording (5):   record_decision, record_bug, record_implementation, record_pattern, record_lesson
  *   Context (4):     link_entries, get_context_for_files, traverse_graph, check_conflicts
@@ -13,6 +13,9 @@
  *   Maintenance (5): update_entry, review_entry, health, get_history, auto_document
  *   Advanced (8):    visualize, mine_sessions, coordinate_team, rebuild_index,
  *                    get_metrics, create_snapshot, list_snapshots, update
+ *   Code Graph (13): code_build, code_query, code_node, code_neighbors, code_path,
+ *                    code_community, code_stats, code_blast, code_gods, code_surprises,
+ *                    code_health, bridge, bridge_auto
  */
 
 import { readFile } from 'node:fs/promises';
@@ -698,7 +701,126 @@ const TOOLS = [
       },
       required: ['title', 'alternatives', 'conclusion']
     }
-  }
+  },
+  {
+    name: 'brain_code_build',
+    description: 'Build or rebuild the code graph from project source files using tree-sitter AST parsing',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mode: { type: 'string', enum: ['full', 'incremental'], description: 'Build mode (default: full)' },
+      },
+    },
+  },
+  {
+    name: 'brain_code_query',
+    description: 'Query the code graph with natural language. Returns relevant code nodes and relationships within a token budget.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Natural language query about the code' },
+        budget: { type: 'number', description: 'Token budget for response (default: 4000)' },
+        mode: { type: 'string', enum: ['bfs', 'dfs'], description: 'Traversal mode (default: bfs)' },
+        max_depth: { type: 'number', description: 'Max traversal depth (default: 2)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'brain_code_node',
+    description: 'Get details of a single code node (metadata, neighbors, brain entry links)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        node_id: { type: 'string', description: 'Node ID (e.g., "src/auth.js::login")' },
+      },
+      required: ['node_id'],
+    },
+  },
+  {
+    name: 'brain_code_neighbors',
+    description: 'List neighbors of a code node with optional relation type filter',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        node_id: { type: 'string', description: 'Node ID' },
+        relation: { type: 'string', description: 'Filter by relation type (calls, imports, inherits, etc.)' },
+      },
+      required: ['node_id'],
+    },
+  },
+  {
+    name: 'brain_code_path',
+    description: 'Find shortest path between two code nodes',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        from: { type: 'string', description: 'Source node ID' },
+        to: { type: 'string', description: 'Target node ID' },
+      },
+      required: ['from', 'to'],
+    },
+  },
+  {
+    name: 'brain_code_community',
+    description: 'List all nodes in a community (logical code cluster)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        community_id: { type: 'number', description: 'Community ID' },
+      },
+      required: ['community_id'],
+    },
+  },
+  {
+    name: 'brain_code_stats',
+    description: 'Get code graph statistics (nodes, edges, communities, languages, confidence)',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'brain_code_blast',
+    description: 'Calculate blast radius for changed files (how many nodes and communities are affected)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        files: { type: 'array', items: { type: 'string' }, description: 'List of changed file paths' },
+      },
+      required: ['files'],
+    },
+  },
+  {
+    name: 'brain_code_gods',
+    description: 'List god nodes (overly-connected refactoring candidates)',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'brain_code_surprises',
+    description: 'List surprising connections (cross-language, cross-community, ambiguous)',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'brain_code_health',
+    description: 'Code graph health report (orphans, god nodes, ambiguous edges)',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'brain_bridge',
+    description: 'Manually link a brain entry to code graph nodes',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        brain_id: { type: 'string', description: 'Brain entry ID (e.g., DEC-001)' },
+        code_nodes: { type: 'array', items: { type: 'string' }, description: 'Code node IDs to link' },
+        relation: { type: 'string', description: 'Relation type (documents, implements, affects)' },
+      },
+      required: ['brain_id', 'code_nodes'],
+    },
+  },
+  {
+    name: 'brain_bridge_auto',
+    description: 'Auto-detect bridges between brain entries and code nodes based on file paths',
+    inputSchema: { type: 'object', properties: {} },
+  },
 ];
 
 // ── Tool dispatch ──
