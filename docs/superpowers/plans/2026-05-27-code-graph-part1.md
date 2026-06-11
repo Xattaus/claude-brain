@@ -26,7 +26,7 @@
 - [ ] **Step 1: Install graphology packages**
 
 ```bash
-cd "/c/Users/Ville/Desktop/autonominen kontekstinhallinta"
+cd "/path/to/claude-brain"
 npm install graphology graphology-communities-louvain graphology-shortest-path graphology-metrics graphology-traversal
 ```
 
@@ -607,7 +607,7 @@ for each language. Extensible via registerLanguage()."
 - [ ] **Step 1: Download tree-sitter WASM files**
 
 ```bash
-cd "/c/Users/Ville/Desktop/autonominen kontekstinhallinta"
+cd "/path/to/claude-brain"
 mkdir -p lib/code-graph/wasm
 
 # Download WASM grammar files from tree-sitter releases
