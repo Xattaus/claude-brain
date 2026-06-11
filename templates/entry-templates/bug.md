@@ -11,14 +11,14 @@ files: []
 root_cause: ""
 ---
 
-## Oireet
-Mitä havaittiin.
+## Symptoms
+What was observed.
 
-## Juurisyy
-Miksi bugi tapahtui.
+## Root Cause
+Why the bug happened.
 
-## Korjaus
-Miten korjattiin.
+## Fix
+How it was fixed.
 
-## Tiedostot
-- tiedosto:rivi — kuvaus
+## Files
+- file:line — description

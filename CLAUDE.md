@@ -194,9 +194,5 @@ This project includes specialized agents for brain management. Use them **automa
 ## Recent brain entries (auto-updated)
 
 <!-- BRAIN_RECENT_START -->
-- **BUG-001** (bug) MCP registration written to settings.local.json was ignored by Claude Code — _fixed_ [2026-06-11]
-- **BUG-002** (bug) Code graph import resolution was completely dead (file vs module node type) — _fixed_ [2026-06-11]
-- **BUG-003** (bug) Cognitive firewall hooks never fired (env var + CJS require) — _fixed_ [2026-06-11]
-- **BUG-004** (bug) brain_rebuild_index silently destroyed research entries and firewall rules — _fixed_ [2026-06-11]
-- **LES-001** (lesson) Project MCP servers belong in .mcp.json, never in .claude/settings files — _active_ [2026-06-11]
+_No entries yet._
 <!-- BRAIN_RECENT_END -->

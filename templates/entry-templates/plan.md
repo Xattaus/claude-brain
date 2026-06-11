@@ -1,15 +1,15 @@
-## Alkuperäinen suunnitelma
+## Original Plan
 
 {scope}
 
-## Toteutettu
+## Implemented
 
 {implemented}
 
-## Lykätty myöhemmäksi
+## Deferred
 
 {deferred}
 
-## Seuraavat askeleet
+## Next Steps
 
 {next_steps}

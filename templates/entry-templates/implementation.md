@@ -9,14 +9,14 @@ related: []
 files: []
 ---
 
-## Kuvaus
-Mitä toteutettiin.
+## Description
+What was implemented.
 
-## Avainparametrit
-- Parametri: arvo
+## Key Details
+- Parameter: value
 
-## Miksi näin
-Miksi tämä lähestymistapa valittiin.
+## Why This Approach
+Why this approach was chosen.
 
-## Tiedostot
-- tiedosto:rivi — kuvaus
+## Files
+- file:line — description

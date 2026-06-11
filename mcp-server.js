@@ -276,7 +276,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        title: { type: 'string', description: 'Short lesson title (e.g. "Älä käytä force-push ilman tarkistusta")' },
+        title: { type: 'string', description: 'Short lesson title (e.g. "Never force-push without checking remote state")' },
         what_happened: { type: 'string', description: 'What went wrong or what was discovered' },
         lesson: { type: 'string', description: 'The extracted lesson — what should be done differently' },
         rule: { type: 'string', description: 'A concrete, actionable rule to follow (e.g. "Always ask before force-push")' },
@@ -860,7 +860,7 @@ async function main() {
   const session = new SessionTracker();
 
   // Initialize language from manifest
-  let t = getTranslator('fi');
+  let t = getTranslator('en');
   try {
     const manifest = await manager.loadManifest();
     if (manifest.language) {

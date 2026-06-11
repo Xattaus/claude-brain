@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="430" viewBox="0 0 760 430" font-family="ui-monospace, 'Cascadia Code', Consolas, monospace" font-size="13">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b1e28"/>
+      <stop offset="1" stop-color="#15171f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- terminal window -->
+  <rect x="0" y="0" width="760" height="430" rx="10" fill="url(#bg)" stroke="#2e3340"/>
+  <rect x="0" y="0" width="760" height="34" rx="10" fill="#232734"/>
+  <rect x="0" y="20" width="760" height="14" fill="#232734"/>
+  <circle cx="22" cy="17" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="17" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="17" r="6" fill="#28c840"/>
+  <text x="380" y="21" fill="#8a90a4" text-anchor="middle" font-size="12">claude — claude-brain demo</text>
+
+  <!-- session 1 -->
+  <text x="24" y="62" fill="#7c8294">Session 1</text>
+  <text x="24" y="84" fill="#e6e9f2"><tspan fill="#56b6c2">&gt;</tspan> We decided to use JWT for auth</text>
+  <text x="24" y="106" fill="#98c379">● brain_record_decision → DEC-001 "Use JWT for auth"</text>
+
+  <!-- divider -->
+  <line x1="24" y1="124" x2="736" y2="124" stroke="#2e3340" stroke-dasharray="4 4"/>
+
+  <!-- session 2 -->
+  <text x="24" y="148" fill="#7c8294">Session 2 — weeks later, fresh context</text>
+  <text x="24" y="170" fill="#e6e9f2"><tspan fill="#56b6c2">&gt;</tspan> Refactor login to use session cookies</text>
+  <text x="24" y="192" fill="#e5c07b">● brain_check_conflicts</text>
+  <text x="40" y="214" fill="#e06c75">⚠ CONFLICT with DEC-001 "Use JWT for auth" — stopping, asking user</text>
+
+  <!-- divider -->
+  <line x1="24" y1="232" x2="736" y2="232" stroke="#2e3340" stroke-dasharray="4 4"/>
+
+  <!-- session 3: firewall -->
+  <text x="24" y="256" fill="#7c8294">Session 3 — agent edits a file, firewall hook fires automatically</text>
+  <text x="24" y="278" fill="#e6e9f2"><tspan fill="#56b6c2">&gt;</tspan> Edit src/auth/token.js</text>
+  <text x="24" y="300" fill="#c678dd">⛨ BRAIN CONTEXT for "src/auth/token.js"  [RISK: MEDIUM (47)]</text>
+  <text x="40" y="322" fill="#e06c75">[GUARD] Do not reintroduce: token expiry off-by-one (BUG-003)</text>
+  <text x="40" y="344" fill="#98c379">[DO] Always validate token audience claim (LES-002)</text>
+  <text x="40" y="366" fill="#61afef">ACTIVE DECISIONS: DEC-001 Use JWT for auth</text>
+
+  <!-- footer -->
+  <text x="24" y="404" fill="#7c8294">injected by the PreToolUse hook — the agent didn't have to remember to ask</text>
+</svg>

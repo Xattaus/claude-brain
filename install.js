@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Brain Install Script — "Lisää aivot tähän projektiin"
+ * Brain Install Script — "Add a brain to this project"
  *
  * Usage:
  *   node install.js <brain-home> [extra-path:label] [extra-path:label] ...
@@ -15,7 +15,7 @@
  *   node install.js .
  *
  *   # Multi-path (brain in first, others linked):
- *   node install.js C:\MinecraftServer "C:\MinecraftBot\bedrock:Bedrock-botit"
+ *   node install.js C:\MinecraftServer "C:\MinecraftBot\bedrock:Bedrock-bots"
  *
  *   # Upgrade existing brain to latest:
  *   node install.js C:\MyProject --update
@@ -46,21 +46,21 @@ function parseArgs() {
   const args = process.argv.slice(2);
   if (args.length === 0) {
     console.log(`
-🧠 Brain v${BRAIN_VERSION} — Autonominen kontekstinhallinta
+🧠 Brain v${BRAIN_VERSION} — Autonomous context management
 
-Käyttö:
-  node install.js <brain-home> [polku:kuvaus] ...
+Usage:
+  node install.js <brain-home> [path:label] ...
   node install.js <brain-home> --update
 
-Esimerkit:
-  node install.js .                          ← Asenna nykyiseen kansioon
-  node install.js C:\\MyProject               ← Asenna tiettyyn polkuun
-  node install.js C:\\MyProject --update      ← Päivitä uusimpaan
-  node install.js C:\\Server "C:\\Bot:Botit"   ← Moniprojekti
+Examples:
+  node install.js .                          ← Install into current directory
+  node install.js C:\\MyProject               ← Install into a specific path
+  node install.js C:\\MyProject --update      ← Update to the latest version
+  node install.js C:\\Server "C:\\Bot:Bots"    ← Multi-directory project
 
-Ensimmäinen argumentti = .brain/-kansion sijainti.
-Lisäpolut = saman projektin muut kansiot (polku:kuvaus).
---update = Päivitä olemassa olevat agentit, skills ja hooks.
+First argument = where the .brain/ folder lives.
+Extra paths = other directories of the same project (path:label).
+--update = Refresh existing agents, skills and hooks.
 `);
     process.exit(0);
   }
@@ -72,7 +72,7 @@ Lisäpolut = saman projektin muut kansiot (polku:kuvaus).
   const positionalArgs = args.filter(a => !a.startsWith('--'));
 
   if (positionalArgs.length === 0) {
-    console.error('❌ Anna kohdepolku ensimmäisenä argumenttina.');
+    console.error('❌ Provide the target path as the first argument.');
     process.exit(1);
   }
 
@@ -105,7 +105,7 @@ async function main() {
   // Create home directory if it doesn't exist (Scenario 1: brand new empty dir)
   if (!existsSync(homePath)) {
     await mkdir(homePath, { recursive: true });
-    console.log(`📂 Kansio luotu: ${homePath}`);
+    console.log(`📂 Directory created: ${homePath}`);
   }
 
   // Build full paths list (home first)
@@ -118,7 +118,7 @@ async function main() {
   // Validate all paths exist
   for (const { path: p, label } of allPaths) {
     if (!existsSync(p)) {
-      console.error(`❌ Kansiota ei löydy: ${p} (${label})`);
+      console.error(`❌ Directory not found: ${p} (${label})`);
       process.exit(1);
     }
   }
@@ -126,7 +126,7 @@ async function main() {
   const isMultiPath = allPaths.length > 1;
   console.log(`\n🧠 Brain v${BRAIN_VERSION} — ${homePath}`);
   if (isMultiPath) {
-    console.log(`   + ${extraPaths.length} lisäsijainti(a):`);
+    console.log(`   + ${extraPaths.length} additional location(s):`);
     for (const { path: p, label } of extraPaths) {
       console.log(`     - ${p} (${label})`);
     }
@@ -150,21 +150,21 @@ async function handleExistingBrain(homePath, brainPath, allPaths, flags) {
   const isUpdate = flags.update;
 
   if (isUpdate) {
-    console.log('🔄 Päivitetään Brain uusimpaan versioon...\n');
+    console.log('🔄 Updating Brain to the latest version...\n');
   } else {
-    console.log('⚠ .brain/ on jo olemassa.');
-    console.log('  Käytä --update päivittääksesi agentit, skills ja hooks.\n');
+    console.log('⚠ .brain/ already exists.');
+    console.log('  Use --update to refresh agents, skills and hooks.\n');
   }
 
   // Read current manifest to show version info
   const manager = new BrainManager(homePath);
   const manifest = await manager.loadManifest();
-  const currentVersion = manifest.brainToolVersion || '(tuntematon)';
+  const currentVersion = manifest.brainToolVersion || '(unknown)';
 
   if (isUpdate && currentVersion !== BRAIN_VERSION) {
-    console.log(`   Versio: ${currentVersion} → ${BRAIN_VERSION}`);
+    console.log(`   Version: ${currentVersion} → ${BRAIN_VERSION}`);
   } else if (isUpdate) {
-    console.log(`   Versio: ${currentVersion} (jo uusin)`);
+    console.log(`   Version: ${currentVersion} (already latest)`);
   }
 
   // Update manifest paths and version
@@ -173,7 +173,7 @@ async function handleExistingBrain(homePath, brainPath, allPaths, flags) {
   manifest.brainToolVersion = BRAIN_VERSION;
   manifest.lastUpdated = new Date().toISOString().substring(0, 10);
   await writeFile(join(brainPath, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8');
-  console.log('   ✓ manifest.json päivitetty');
+  console.log('   ✓ manifest.json updated');
 
   // Always update CLAUDE.md and MCP registrations
   await updateClaudeMd(homePath);
@@ -184,30 +184,30 @@ async function handleExistingBrain(homePath, brainPath, allPaths, flags) {
   // Deploy agents (force-update if --update)
   const deployedAgents = await deployAgents(homePath, isUpdate);
   if (deployedAgents.length > 0) {
-    console.log(`   ✓ Agentit ${isUpdate ? 'päivitetty' : 'asennettu'}: ${deployedAgents.join(', ')}`);
+    console.log(`   ✓ Agents ${isUpdate ? 'updated' : 'installed'}: ${deployedAgents.join(', ')}`);
   }
 
   // Deploy hooks (always idempotent, but update script paths)
   const deployedHooks = await deployHooks(homePath, isUpdate);
   if (deployedHooks > 0) {
-    console.log(`   ✓ Hooks ${isUpdate ? 'päivitetty' : 'asennettu'} (${deployedHooks} tapahtumaa)`);
+    console.log(`   ✓ Hooks ${isUpdate ? 'updated' : 'installed'} (${deployedHooks} events)`);
   }
 
   // Deploy skills (force-update if --update)
   const deployedSkills = await deploySkills(homePath, isUpdate);
   if (deployedSkills.length > 0) {
-    console.log(`   ✓ Skills ${isUpdate ? 'päivitetty' : 'asennettu'}: ${deployedSkills.join(', ')}`);
+    console.log(`   ✓ Skills ${isUpdate ? 'updated' : 'installed'}: ${deployedSkills.join(', ')}`);
   }
 
   // Ensure permissions are set
   await ensurePermissions(homePath);
 
-  console.log(`\n✓ Brain v${BRAIN_VERSION} — CLAUDE.md, MCP, hooks ja skills päivitetty.\n`);
+  console.log(`\n✓ Brain v${BRAIN_VERSION} — CLAUDE.md, MCP, hooks and skills updated.\n`);
 
   // Log the update to changelog
   if (isUpdate) {
     try {
-      await manager.appendChangelog(`Brain päivitetty versioon ${BRAIN_VERSION}`);
+      await manager.appendChangelog(`Brain updated to version ${BRAIN_VERSION}`);
     } catch { /* changelog might not exist in very old installs */ }
   }
 }
@@ -216,7 +216,7 @@ async function handleExistingBrain(homePath, brainPath, allPaths, flags) {
 
 async function handleFreshInstall(homePath, brainPath, allPaths, isMultiPath, homeLabel) {
   // Analyze codebase(s)
-  console.log('📊 Analysoidaan koodipohjaa...');
+  console.log('📊 Analyzing codebase...');
   let analysis;
   let projectName;
 
@@ -233,19 +233,19 @@ async function handleFreshInstall(homePath, brainPath, allPaths, isMultiPath, ho
     if (analysis.types.length > 0) {
       console.log(`   Tyyppi: ${analysis.types.join(', ')}`);
     } else {
-      console.log('   📂 Tyhjä tai tunnistamaton projekti — aivot toimivat silti!');
+      console.log('   📂 Empty or unrecognized project — the brain works anyway!');
     }
   }
 
   if (analysis.frameworks.length > 0) {
-    console.log(`   Frameworkit: ${analysis.frameworks.join(', ')}`);
+    console.log(`   Frameworks: ${analysis.frameworks.join(', ')}`);
   }
   if (analysis.technologies.length > 0) {
-    console.log(`   Teknologiat: ${analysis.technologies.join(', ')}`);
+    console.log(`   Technologies: ${analysis.technologies.join(', ')}`);
   }
 
   // Create .brain/ folder and initialize
-  console.log('\n📁 Luodaan .brain/ -kansiorakenne...');
+  console.log('\n📁 Creating .brain/ folder structure...');
   const manager = new BrainManager(homePath);
   const overview = generateOverview(analysis);
   await manager.initBrain({
@@ -266,11 +266,11 @@ async function handleFreshInstall(homePath, brainPath, allPaths, isMultiPath, ho
   console.log('   ✓ decisions/ implementations/ bugs/ patterns/ plans/');
 
   // Generate/update CLAUDE.md (only in brain home)
-  console.log('\n📝 Päivitetään CLAUDE.md...');
+  console.log('\n📝 Updating CLAUDE.md...');
   await updateClaudeMd(homePath);
 
   // Register MCP server in ALL paths
-  console.log('\n🔌 Rekisteröidään MCP-serveri...');
+  console.log('\n🔌 Registering MCP server...');
   for (const { path: p, label } of allPaths) {
     await registerMcpServer(p, homePath);
     if (p !== homePath) {
@@ -293,7 +293,7 @@ async function handleFreshInstall(homePath, brainPath, allPaths, isMultiPath, ho
   console.log('\n🪝 Asennetaan hooks...');
   const deployedHooks = await deployHooks(homePath);
   if (deployedHooks > 0) {
-    console.log(`   ✓ ${deployedHooks} hook-tapahtumaa rekisteröity`);
+    console.log(`   ✓ ${deployedHooks} hook events registered`);
   }
 
   // Deploy skills
@@ -315,21 +315,21 @@ async function handleFreshInstall(homePath, brainPath, allPaths, isMultiPath, ho
 
   // Summary
   console.log('\n' + '═'.repeat(55));
-  console.log(`✓ Brain v${BRAIN_VERSION} asennettu: ${brainPath}`);
+  console.log(`✓ Brain v${BRAIN_VERSION} installed: ${brainPath}`);
   if (isMultiPath) {
-    console.log(`  - ${allPaths.length} projektisijaintia yhdistetty`);
+    console.log(`  - ${allPaths.length} project locations connected`);
     for (const { path: p, label } of allPaths) {
-      const marker = p === homePath ? ' (.brain/ täällä)' : '';
+      const marker = p === homePath ? ' (.brain/ here)' : '';
       console.log(`    • ${label}: ${p}${marker}`);
     }
   }
-  console.log(`  - MCP-serveri rekisteröity ${allPaths.length} sijaintiin`);
-  console.log(`  - CLAUDE.md päivitetty`);
+  console.log(`  - MCP server registered in ${allPaths.length} location(s)`);
+  console.log(`  - CLAUDE.md updated`);
   console.log(`  - Hooks: SessionStart, Clear, Stop, PreCompact`);
   console.log(`  - Skills: brain-workflow`);
   console.log('═'.repeat(55));
-  console.log('\n→ Käynnistä Claude Code ja sano: "Tutustu aivoihin"');
-  console.log('→ Tai käytä komentoriviltä: "npm run brain" tai "node cli.js"\n');
+  console.log('\n→ Restart Claude Code and say: "Get familiar with the brain"');
+  console.log('→ Or use the CLI directly: "npm run brain" or "node cli.js"\n');
 }
 
 // ── CLAUDE.md management ──
@@ -364,14 +364,14 @@ async function updateClaudeMd(projectPath) {
     // Inject BRAIN_RECENT markers if missing
     let content = await readFile(claudeMdPath, 'utf-8');
     if (!content.includes('<!-- BRAIN_RECENT_START -->')) {
-      content += '\n\n## Viimeisimmät brain-merkinnät (auto-päivittyy)\n\n<!-- BRAIN_RECENT_START -->\n_Ei merkintöjä vielä._\n<!-- BRAIN_RECENT_END -->\n';
+      content += '\n\n## Recent brain entries (auto-updated)\n\n<!-- BRAIN_RECENT_START -->\n_No entries yet._\n<!-- BRAIN_RECENT_END -->\n';
       await writeFile(claudeMdPath, content, 'utf-8');
     }
 
-    console.log('   ✓ CLAUDE.md päivitetty (olemassa oleva sisältö säilytetty)');
+    console.log('   ✓ CLAUDE.md updated (existing content preserved)');
   } else {
     await writeFile(claudeMdPath, brainSection, 'utf-8');
-    console.log('   ✓ CLAUDE.md luotu');
+    console.log('   ✓ CLAUDE.md created');
   }
 }
 
@@ -404,7 +404,7 @@ async function registerMcpServer(targetPath, brainHomePath) {
   };
 
   await writeFile(mcpJsonPath, JSON.stringify(mcpConfig, null, 2), 'utf-8');
-  console.log(`   ✓ MCP rekisteröity: ${mcpJsonPath}`);
+  console.log(`   ✓ MCP registered: ${mcpJsonPath}`);
 
   // Migration: older installer versions wrote an mcpServers block into
   // .claude/settings.local.json, which Claude Code ignores. Remove it so the
@@ -419,7 +419,7 @@ async function registerMcpServer(targetPath, brainHomePath) {
           delete settings.mcpServers;
         }
         await writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-        console.log('   ✓ Vanha (toimimaton) MCP-rekisteröinti siivottu settings.local.json:sta');
+        console.log('   ✓ Stale (non-working) MCP registration removed from settings.local.json');
       }
     } catch { /* leave settings untouched on parse failure */ }
   }
@@ -467,7 +467,7 @@ async function ensurePermissions(homePath) {
 
   if (added > 0) {
     await writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-    console.log(`   ✓ Permissiot: ${requiredPermissions.join(', ')}`);
+    console.log(`   ✓ Permissions: ${requiredPermissions.join(', ')}`);
   }
 }
 
@@ -484,7 +484,7 @@ async function updateGitignore(projectPath) {
 
   content += '\n# Brain - autonomous context management\n.brain/\n';
   await writeFile(gitignorePath, content, 'utf-8');
-  console.log('   ✓ .brain/ lisätty .gitignore:en');
+  console.log('   ✓ .brain/ added to .gitignore');
 }
 
 // ── Agent deployment ──

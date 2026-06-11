@@ -49,12 +49,9 @@ Session 3:  "Why is auth broken?"        ─── bug reintroduced
 
 Claude Brain is an MCP server that gives the agent a **structured, queryable knowledge base** plus a **code structure graph** — so instead of stuffing everything into the context window, the agent retrieves exactly what's relevant, when it's relevant.
 
-```
-Session 1:  "Let's use JWT for auth"     ─── brain_record_decision ✓
-Session 2:  "Let's use session cookies"  ─── brain_check_conflicts ⚠ CONFLICT with DEC-001
-Session 3:  "Fix the auth bug"           ─── brain_get_context_for_files → full history
-Refactor:   "Change util.js"             ─── brain_code_blast → 6 affected nodes, risk 52/100
-```
+<div align="center">
+<img src="docs/assets/firewall-demo.svg" alt="Demo: a decision recorded in session 1 blocks a contradicting change in session 2, and the firewall hook injects file context automatically in session 3" width="760">
+</div>
 
 Three subsystems:
 

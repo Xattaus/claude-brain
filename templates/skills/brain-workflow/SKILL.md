@@ -1,63 +1,63 @@
 ---
 name: brain-workflow
-description: Autonominen kontekstinhallinta. Aktivoidu kun Claude työskentelee koodin kanssa ja tarvitaan kontekstinhallintaa — päätösten, bugien, toteutusten, mallien ja suunnitelmien tallentamista .brain/-tietokantaan MCP-työkaluilla.
+description: Autonomous context management. Activate whenever Claude works with code and context management is needed — recording decisions, bugs, implementations, patterns, and plans into the .brain/ database via MCP tools.
 ---
 
-# Brain Workflow — Autonominen kontekstinhallinta
+# Brain Workflow — Autonomous Context Management
 
-Tässä projektissa on käytössä **MCP-pohjainen kontekstinhallintajärjestelmä** (`.brain/`-kansio).
-Käytä **vain MCP-työkaluja** — ÄLÄ lue .brain/-tiedostoja suoraan.
+This project uses an **MCP-based context management system** (the `.brain/` directory).
+Use **MCP tools only** — do NOT read .brain/ files directly.
 
-## Istunnon alussa
+## At session start
 
-1. `brain_get_overview` → projektin tila + terveysvaroitukset
-2. `brain_get_backlog` → keskeneräiset suunnitelmat ja lykätyt tehtävät
-3. Arvioi onko lykätty tehtävä nyt ajankohtainen
+1. `brain_get_overview` → project state + health warnings
+2. `brain_get_backlog` → incomplete plans and deferred tasks
+3. Evaluate whether any deferred task is now relevant
 
-## Ennen muutoksia
+## Before changes
 
-1. `brain_check_conflicts` → tarkista ristiriidat olemassa olevien päätösten kanssa
-2. `brain_get_context_for_files` → hae tiedostoihin liittyvä konteksti
+1. `brain_check_conflicts` → check for conflicts with existing decisions
+2. `brain_get_context_for_files` → fetch context related to the files
 
-**Jos brain_check_conflicts palauttaa CONFLICT:**
-- PYSÄHDY ja ilmoita käyttäjälle
-- Kerro mikä päätös on ristiriidassa
-- Kysy haluaako käyttäjä ohittaa, päivittää vai perua
+**If brain_check_conflicts returns CONFLICT:**
+- STOP and inform the user
+- Explain which decision conflicts
+- Ask whether the user wants to override, update, or cancel
 
-## Muutosten jälkeen — tallenna AINA
+## After changes — ALWAYS record
 
-| Muutostyyppi | Työkalu |
+| Change type | Tool |
 |---|---|
-| Arkkitehtuuripäätös | `brain_record_decision` (MIKSI näin tehtiin) |
-| Bugikorjaus | `brain_record_bug` (oireet, juurisyy, korjaus) |
-| Merkittävä toteutus | `brain_record_implementation` |
-| Uudelleenkäytettävä malli | `brain_record_pattern` |
-| Suunnitelma | `brain_record_plan` (toteutettu, lykätty, seuraavat) |
+| Architecture decision | `brain_record_decision` (record WHY) |
+| Bug fix | `brain_record_bug` (symptoms, root cause, fix) |
+| Significant implementation | `brain_record_implementation` |
+| Reusable pattern | `brain_record_pattern` |
+| Plan | `brain_record_plan` (implemented, deferred, next steps) |
 
-Linkitä merkinnät: `brain_link_entries` (implements, fixes, supersedes, jne.)
+Link entries: `brain_link_entries` (implements, fixes, supersedes, etc.)
 
-## Yhteydet
+## Relationships
 
-- `supersedes` / `superseded_by` — uusi korvaa vanhan
-- `implements` — toteutus toteuttaa päätöksen
-- `fixes` — korjaus korjaa bugin
+- `supersedes` / `superseded_by` — new replaces old
+- `implements` — implementation fulfills a decision
+- `fixes` — fix resolves a bug
 - `caused_by` / `used_in` / `relates_to`
 
-## Session lopussa
+## At session end
 
-Jos työ jäi kesken: `brain_record_plan` tallentaa mitä tehtiin, lykättiin ja seuraavat askeleet.
+If work is incomplete: `brain_record_plan` saves what was done, deferred, and the next steps.
 
-## Haku & tiedon käyttö
+## Search & retrieval
 
-- `brain_search` — hakusanoilla
-- `brain_list` — tyypeittäin/statuksittain
-- `brain_get_entry` — yksittäinen merkintä
-- `brain_health` — terveysraportti
+- `brain_search` — by keywords
+- `brain_list` — by type/status
+- `brain_get_entry` — a single entry
+- `brain_health` — health report
 
-## Agentit
+## Agents
 
-Käytä brain-agentteja **automaattisesti** tilanteen edellyttäessä:
-- `brain-curator` — terveysongelmissa
-- `brain-documenter` — dokumentoimattomat muutokset
-- `brain-reviewer` — konsistenssin tarkistus
-- `brain-backlog` — backlogin hallinta
+Use the brain agents **automatically** when the situation calls for it:
+- `brain-curator` — health issues
+- `brain-documenter` — undocumented changes
+- `brain-reviewer` — consistency checks
+- `brain-backlog` — backlog management

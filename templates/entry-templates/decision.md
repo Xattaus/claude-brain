@@ -10,16 +10,16 @@ files: []
 superseded_by: null
 ---
 
-## Konteksti
-Miksi tämä päätös tehtiin.
+## Context
+Why this decision was needed.
 
-## Päätös
-Mitä päätettiin.
+## Decision
+What was decided.
 
-## Harkitut vaihtoehdot
-1. Vaihtoehto A — kuvaus
-2. Vaihtoehto B — kuvaus
+## Considered Alternatives
+1. Alternative A — description
+2. Alternative B — description
 
-## Seuraukset
-- Seuraus 1
-- Seuraus 2
+## Consequences
+- Consequence 1
+- Consequence 2

@@ -7,10 +7,10 @@ tags: []
 related: []
 ---
 
-## Malli
-Kuvaus uudelleenkäytettävästä mallista.
+## Pattern
+Description of the reusable pattern.
 
-## Esimerkki
+## Example
 ```
-// Koodiesimerkki
+// Code example
 ```

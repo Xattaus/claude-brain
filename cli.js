@@ -351,7 +351,7 @@ async function cmdUpdate() {
   const __dn = dirname(__fn);
   const installScript = join(__dn, 'install.js');
 
-  console.log(`🔄 Päivitetään aivot: ${projectPath}\n`);
+  console.log(`🔄 Updating brain: ${projectPath}\n`);
   try {
     execSync(`node "${installScript}" "${projectPath}" --update`, { stdio: 'inherit' });
   } catch (err) {
