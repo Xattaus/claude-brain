@@ -24,7 +24,7 @@ Built for agents, not humans: the agent reads it at session start, writes to it 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-compatible-blue)](https://modelcontextprotocol.io)
 ![Tools](https://img.shields.io/badge/MCP_Tools-53-ff6b6b)
-![Tests](https://img.shields.io/badge/tests-280_passing-brightgreen)
+[![CI](https://github.com/Xattaus/claude-brain/actions/workflows/ci.yml/badge.svg)](https://github.com/Xattaus/claude-brain/actions/workflows/ci.yml)
 ![Version](https://img.shields.io/badge/version-3.0.0-blue)
 
 </div>
