@@ -50,7 +50,7 @@ Session 3:  "Why is auth broken?"        ─── bug reintroduced
 Claude Brain is an MCP server that gives the agent a **structured, queryable knowledge base** plus a **code structure graph** — so instead of stuffing everything into the context window, the agent retrieves exactly what's relevant, when it's relevant.
 
 <div align="center">
-<img src="docs/assets/firewall-demo.svg" alt="Demo: a decision recorded in session 1 blocks a contradicting change in session 2, and the firewall hook injects file context automatically in session 3" width="760">
+<img src="docs/assets/firewall-demo.svg" alt="Demo: a decision recorded in session 1 blocks a contradicting change in session 2, the firewall hook injects file context automatically in session 3, and on a large codebase the code graph answers a token-budgeted query over a 12,400-node graph and computes the blast radius of a change" width="760">
 </div>
 
 Three subsystems:
