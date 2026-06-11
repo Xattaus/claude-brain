@@ -17,8 +17,9 @@
 
 **Autonomous context management for AI coding agents**
 
+**Never explain your project twice.** The agent starts every session already knowing
+the decisions, the bugs, the conventions — and its own past mistakes.
 Persistent project memory + cognitive firewall + tree-sitter code graph, exposed as 53 MCP tools.
-Built for agents, not humans: the agent reads it at session start, writes to it as it works, and is reminded by hooks when it forgets.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js&logoColor=white)](https://nodejs.org)
