@@ -344,7 +344,9 @@ async function updateClaudeMd(projectPath) {
     let existing = await readFile(claudeMdPath, 'utf-8');
 
     if (existing.includes('Autonominen Kontekstinhallinta') || existing.includes('brain_get_overview')) {
-      const brainStart = existing.indexOf('# Projektin Aivot');
+      // Support both the current English heading and the legacy Finnish one
+      let brainStart = existing.indexOf('# Project Brain');
+      if (brainStart === -1) brainStart = existing.indexOf('# Projektin Aivot');
       if (brainStart !== -1) {
         const nextHeading = existing.indexOf('\n# ', brainStart + 1);
         if (nextHeading !== -1) {
@@ -403,6 +405,24 @@ async function registerMcpServer(targetPath, brainHomePath) {
 
   await writeFile(mcpJsonPath, JSON.stringify(mcpConfig, null, 2), 'utf-8');
   console.log(`   ✓ MCP rekisteröity: ${mcpJsonPath}`);
+
+  // Migration: older installer versions wrote an mcpServers block into
+  // .claude/settings.local.json, which Claude Code ignores. Remove it so the
+  // broken registration doesn't linger next to the working .mcp.json one.
+  const settingsPath = join(targetPath, '.claude', 'settings.local.json');
+  if (existsSync(settingsPath)) {
+    try {
+      const settings = JSON.parse(await readFile(settingsPath, 'utf-8'));
+      if (settings.mcpServers && settings.mcpServers.brain) {
+        delete settings.mcpServers.brain;
+        if (Object.keys(settings.mcpServers).length === 0) {
+          delete settings.mcpServers;
+        }
+        await writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+        console.log('   ✓ Vanha (toimimaton) MCP-rekisteröinti siivottu settings.local.json:sta');
+      }
+    } catch { /* leave settings untouched on parse failure */ }
+  }
 }
 
 // ── Permissions ──

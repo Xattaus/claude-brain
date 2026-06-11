@@ -7,7 +7,12 @@
  * any brain tool call, injects a reminder.
  *
  * Uses a simple counter stored in a temp file since hooks are stateless.
+ * NOTE: this package is ESM ("type": "module") — use imports, not require().
  */
+
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 
 let input = '';
 process.stdin.setEncoding('utf8');
@@ -17,28 +22,28 @@ process.stdin.on('end', () => {
         const data = JSON.parse(input);
         const toolName = data.tool_name || '';
 
-        // Brain tools reset the counter
-        if (toolName.startsWith('brain_')) {
-            const fs = require('fs');
-            const path = require('path');
-            const counterFile = path.join(process.env.TMPDIR || process.env.TEMP || '/tmp', '.brain-activity-counter');
-            try { fs.writeFileSync(counterFile, '0', 'utf-8'); } catch { /* ignore */ }
+        // Per-project counter file (cwd-scoped so projects don't share state)
+        const scope = createHash('md5').update(String(data.cwd || '')).digest('hex').slice(0, 8);
+        const counterFile = join(
+            process.env.TMPDIR || process.env.TEMP || '/tmp',
+            `.brain-activity-counter-${scope}`
+        );
+
+        // Brain tools reset the counter. MCP tool names arrive as
+        // "mcp__brain__brain_record_decision", so match on the inner name too.
+        if (toolName.startsWith('brain_') || toolName.startsWith('mcp__brain')) {
+            try { writeFileSync(counterFile, '0', 'utf-8'); } catch { /* ignore */ }
             process.exit(0);
-            return;
         }
 
         // Non-brain tools: check the counter
-        const fs = require('fs');
-        const path = require('path');
-        const counterFile = path.join(process.env.TMPDIR || process.env.TEMP || '/tmp', '.brain-activity-counter');
-
         let count = 0;
         try {
-            count = parseInt(fs.readFileSync(counterFile, 'utf-8')) || 0;
+            count = parseInt(readFileSync(counterFile, 'utf-8')) || 0;
         } catch { /* first time */ }
 
         count++;
-        fs.writeFileSync(counterFile, String(count), 'utf-8');
+        writeFileSync(counterFile, String(count), 'utf-8');
 
         // Only remind every 10 calls
         if (count >= 10 && count % 10 === 0) {

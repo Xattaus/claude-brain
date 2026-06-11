@@ -41,15 +41,18 @@ process.stdin.on('end', async () => {
             return;
         }
 
-        // Try to read index.json and build full context
-        const brainPath = process.env.BRAIN_PROJECT_PATH
-            ? join(process.env.BRAIN_PROJECT_PATH, '.brain')
-            : null;
+        // Try to read index.json and build full context.
+        // Claude Code does NOT set BRAIN_PROJECT_PATH for hooks (only the MCP
+        // server gets it), so fall back to the hook payload's cwd.
+        const projectDir = process.env.BRAIN_PROJECT_PATH
+            || data.cwd
+            || process.env.CLAUDE_PROJECT_DIR;
 
-        if (!brainPath) {
+        if (!projectDir) {
             process.exit(0);
             return;
         }
+        const brainPath = join(projectDir, '.brain');
 
         let indexData;
         try {

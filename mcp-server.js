@@ -523,7 +523,7 @@ const TOOLS = [
   },
   {
     name: 'brain_coordinate_team',
-    description: 'Run multiple brain agents (curator, documenter, reviewer, backlog) and collect their results. Useful for comprehensive brain maintenance.',
+    description: 'Generate step-by-step instructions for running brain maintenance agents (curator, documenter, reviewer, backlog). NOTE: does not execute anything itself — it returns commands for the caller to run.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -708,7 +708,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        mode: { type: 'string', enum: ['full', 'incremental'], description: 'Build mode (default: full)' },
+        mode: { type: 'string', enum: ['full', 'incremental'], description: 'Build mode (default: full). Note: incremental currently performs a full rebuild; per-file AST caching keeps rebuilds fast either way.' },
       },
     },
   },

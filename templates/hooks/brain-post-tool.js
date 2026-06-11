@@ -30,6 +30,15 @@ process.stdin.on('end', () => {
             return;
         }
 
+        // Only remind about files inside the project — temp files and other
+        // out-of-tree paths are not brain-worthy and the reminder is noise.
+        const cwd = (data.cwd || '').replace(/\\/g, '/').toLowerCase();
+        const normFile = filePath.replace(/\\/g, '/').toLowerCase();
+        if (cwd && !normFile.startsWith(cwd)) {
+            process.exit(0);
+            return;
+        }
+
         const output = {
             hookSpecificOutput: {
                 hookEventName: "PostToolUse",

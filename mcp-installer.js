@@ -8,7 +8,7 @@
  * Provides a single tool: brain_install
  *
  * After brain_install runs, the per-project mcp-server.js is registered
- * for both Claude and Gemini, and an AI restart activates all 19 brain_* tools.
+ * for both Claude and Gemini, and an AI restart activates all 53 brain_* tools.
  */
 
 import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
@@ -94,7 +94,7 @@ const TOOLS = [
     description:
       'Install Brain (autonomous context management) into a project. ' +
       'Creates .brain/ folder with project analysis, updates CLAUDE.md and GEMINI.md, registers per-project MCP server for both Claude and Gemini. ' +
-      'After installation, the AI tool must be restarted to activate the 19 brain_* tools.',
+      'After installation, the AI tool must be restarted to activate the 53 brain_* tools.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -178,6 +178,9 @@ async function handleBrainInstall(args) {
       log.push(`Agents deployed: ${deployedAgents.join(', ')}`);
     }
 
+    // Deploy hooks + skills via install.js (single source of truth)
+    await deployHooksAndSkills(homePath, log);
+
     log.push('');
     log.push('Restart your AI tool (Claude Code / Gemini CLI) to activate brain_* tools.');
     return log.join('\n');
@@ -252,6 +255,9 @@ async function handleBrainInstall(args) {
     }
   }
 
+  // Deploy hooks + skills via install.js (single source of truth)
+  await deployHooksAndSkills(homePath, log);
+
   // Add .brain/ to .gitignore if git project
   if (existsSync(join(homePath, '.git'))) {
     await updateGitignore(homePath);
@@ -273,12 +279,33 @@ async function handleBrainInstall(args) {
   log.push(`  CLAUDE.md and GEMINI.md updated`);
   log.push('='.repeat(50));
   log.push('');
-  log.push('Restart your AI tool (Claude Code / Gemini CLI) to activate the 19 brain_* tools.');
+  log.push('Restart your AI tool (Claude Code / Gemini CLI) to activate the 53 brain_* tools.');
 
   return log.join('\n');
 }
 
 // ── Helper functions (from install.js) ──
+
+/**
+ * Deploy hooks and skills by delegating to install.js --update.
+ * install.js owns that logic; duplicating it here caused installs via the
+ * brain_install MCP tool to silently skip hooks and skills.
+ * Output is captured (never printed) so MCP stdio stays clean.
+ */
+async function deployHooksAndSkills(homePath, log) {
+  try {
+    const { execSync } = await import('node:child_process');
+    const installScript = join(__dirname, 'install.js');
+    execSync(`node "${installScript}" "${homePath}" --update`, {
+      encoding: 'utf-8',
+      timeout: 60000,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    log.push('Hooks and skills deployed (via install.js --update).');
+  } catch (err) {
+    log.push(`Warning: hooks/skills deployment failed: ${err.message}`);
+  }
+}
 
 async function updateClaudeMd(projectPath) {
   const claudeMdPath = join(projectPath, 'CLAUDE.md');
