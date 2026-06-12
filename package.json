@@ -1,5 +1,5 @@
 {
-  "name": "claude-brain",
+  "name": "claude-brain-mcp",
   "version": "3.0.0",
   "description": "Autonomous context management for AI coding agents — persistent memory, cognitive firewall, knowledge graph",
   "type": "module",
@@ -8,6 +8,17 @@
     "brain": "cli.js",
     "claude-brain-install": "install.js"
   },
+  "files": [
+    "mcp-server.js",
+    "install.js",
+    "mcp-installer.js",
+    "cli.js",
+    "visualize.js",
+    "lib/",
+    "templates/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "node mcp-server.js",
     "test": "node --test tests/brain.test.js tests/graph.test.js tests/validation.test.js tests/performance.test.js tests/handlers.test.js tests/libs.test.js",
